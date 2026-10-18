@@ -765,6 +765,20 @@
   .branch-tag.yes{ background:#E6F4EA; color:#1e7a3c; }
   .branch-tag.no{ background:#F3EFE6; color:#7a5e2b; }
   .opt-note{ font-size:12px; color:#5b7370; font-weight:700; }
+
+  .opt.is-off .opt-price, .menu-row.is-off .menu-price{ text-decoration: line-through; color:#a9b8b5; }
+  .opt.is-off .opt-ctl, .menu-row.is-off .opt-ctl{ visibility:hidden; }
+  .opt.is-off::after, .menu-row.is-off::after{ content:'نفذ'; font-size:12px; font-weight:800; color:#a33a2c; background:#fdecea; border-radius:999px; padding:3px 10px; margin-inline-start:auto; }
+  .opt.is-off .opt-ctl{ display:none; }
+  .product-card.sold-out .photo-wrap img{ filter: grayscale(.85) brightness(.9); }
+  .product-card.sold-out .photo-wrap::before{
+    content:'نفذت الكمية'; position:absolute; z-index:3; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-6deg);
+    background:rgba(1,43,50,.88); color:var(--gold); font-weight:800; font-size:18px; padding:8px 22px; border-radius:999px; border:2px solid var(--gold);
+  }
+  .product-card.sold-out .chips{ opacity:.5; pointer-events:none; }
+  .film-frame.sold-out img{ filter: grayscale(1) brightness(.6) !important; }
+  .film-frame.sold-out .film-badge{ background:#a33a2c; color:#fff; }
+  .film-frame.sold-out .film-badge::after{ content:' · نفذ'; }
 </style>
 </head>
 <body>
@@ -2339,6 +2353,24 @@
     function latinDigits(t){ return String(t||'').replace(/[٠-٩]/g, function(d){ return AR.indexOf(d); }); }
     function toNum(t){ var m=latinDigits(t).match(/\d+(\.\d+)?/); return m ? parseFloat(m[0]) : 0; }
     function money(n){ return (Math.round(n*100)/100) + ' ج.م.'; }
+    // ---- live prices from prices.json (managed from admin.php) ----
+    var LIVE={}, OFF={};
+    function priceOf(key, fallback){ var v=LIVE[key]; return (typeof v==='number' && v>0) ? v : fallback; }
+    function applyLivePrices(){
+      document.querySelectorAll('[data-pkey]').forEach(function(el){
+        var v=priceOf(el.getAttribute('data-pkey'), +el.getAttribute('data-base'));
+        if(el.querySelector('.opt-note')) return;   // flavor-priced rows keep their own text
+        el.textContent=money(v);
+      });
+      document.querySelectorAll('.film-frame').forEach(function(f){
+        var n=f.getAttribute('data-name'), sp=f.querySelector('.film-price'); if(!sp) return;
+        if(LIVE[n+'|']) sp.textContent=money(LIVE[n+'|']);
+        else if(LIVE[n+'|كيلو']) sp.textContent='الكيلو '+money(LIVE[n+'|كيلو']);
+      });
+      var changed=false;
+      cart.forEach(function(i){ var v=LIVE[i.name+'|'+i.size]; if(typeof v==='number' && v>0 && v!==i.price){ i.price=v; changed=true; } });
+      if(changed) save(CART_KEY, cart);
+    }
     function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
     function toast(msg){
@@ -2369,6 +2401,7 @@
         var item=get();
         if(!item){ if(onNeedFlavor) onNeedFlavor(); return; }
         var q=qtyOf(item.key);
+        if((a==='add'||a==='inc') && OFF[item.name+'|'+item.size]){ toast('الصنف ده نفذ حاليًا'); return; }
         if(a==='add'){ setQty(item, 1); toast('✓ اتضاف للسلة: '+item.name+(label(item)?' ('+label(item)+')':'')); bumpFab(); }
         else if(a==='inc'){ setQty(item, q+1); }
         else if(a==='dec'){ setQty(item, q-1); }
@@ -2382,7 +2415,7 @@
                          : '<button type="button" class="add-mini" data-a="add">+ أضف</button>';
     }
 
-    document.querySelectorAll('.product-card .product-info').forEach(function(info){
+    function setupInfo(info){
       var h4=info.querySelector('h4'); if(!h4) return;
       var card=info.closest('.product-card');
       var name=h4.textContent.trim(), options=[];
@@ -2422,11 +2455,12 @@
 
       var box=document.createElement('div'); box.className='opts';
       options.forEach(function(o){
+        var pkey=name+'|'+o.size;
         var row=document.createElement('div'); row.className='opt';
-        row.innerHTML=(o.size?'<span class="opt-label">'+esc(o.size)+'</span>':'')+'<span class="opt-price">'+money(o.price)+'</span>';
+        row.innerHTML=(o.size?'<span class="opt-label">'+esc(o.size)+'</span>':'')+'<span class="opt-price" data-pkey="'+esc(pkey)+'" data-base="'+o.price+'">'+money(o.price)+'</span>';
         var get=function(){
           if(flavors.length && !state.flavor) return null;
-          var pr=(state.prices && state.prices[state.flavor]) || o.price;
+          var pr=(state.prices && state.prices[state.flavor]) || priceOf(pkey, o.price);
           return {key:name+'|'+o.size+(state.flavor?'|'+state.flavor:''), name:name, size:o.size, flavor:state.flavor, price:pr};
         };
         if(state.prices && Object.keys(state.prices).length){
@@ -2438,11 +2472,13 @@
         box.appendChild(row);
       });
       info.appendChild(box);
-    });
+    }
+    document.querySelectorAll('.product-card .product-info').forEach(setupInfo);
     document.querySelectorAll('.menu-row').forEach(function(r){
       var n=r.querySelector('.menu-name'), p=r.querySelector('.menu-price'); if(!n||!p) return;
-      var nm=n.textContent.trim(), it={key:nm+'|', name:nm, size:'', price:toNum(p.textContent)};
-      r.appendChild(buildCtl(function(){ return it; }, null).el);
+      var nm=n.textContent.trim(), base=toNum(p.textContent);
+      p.setAttribute('data-pkey', nm+'|'); p.setAttribute('data-base', base);
+      r.appendChild(buildCtl(function(){ return {key:nm+'|', name:nm, size:'', price:priceOf(nm+'|', base)}; }, null).el);
     });
 
     function bumpFab(){ var f=document.querySelector('.cart-fab'); if(!f) return; f.classList.remove('bump'); void f.offsetWidth; f.classList.add('bump'); }
@@ -2634,6 +2670,71 @@
 
     cart = load(CART_KEY) || [];
     render();
+    // ---- products added from the admin panel ----
+    function cardByName(n){
+      var hs=document.querySelectorAll('.product-card h4');
+      for(var i=0;i<hs.length;i++){ if(hs[i].textContent.trim()===n) return hs[i].closest('.product-card'); }
+      return null;
+    }
+    function addExtraCard(x){
+      var sec=document.getElementById(x.sid); if(!sec || cardByName(x.name)) return;
+      var grid=sec.querySelector('.products-grid'); if(!grid) return;
+      var card=document.createElement('div'); card.className='product-card';
+      var pid='x'+x.id, sizes=x.sizes||[], priceHtml;
+      if(sizes.length>1 || (sizes[0] && sizes[0].size)){
+        priceHtml='<div class="price-multi">'+sizes.map(function(z){ return '<div><span class="size-label">'+esc(z.size)+'</span><span class="size-price">'+money(z.price)+'</span></div>'; }).join('')+'</div>';
+      }else{
+        priceHtml='<span class="price">'+money(sizes[0]?sizes[0].price:0)+'</span>';
+      }
+      var logo=document.querySelector('.product-photo-logo, .brand img');
+      var img=x.img ? '<img class="product-photo-img" src="'+esc(x.img)+'" alt="'+esc(x.name)+'" loading="lazy">'
+                    : '<img class="product-photo-logo" src="'+(logo?logo.src:'')+'" alt="'+esc(x.name)+'">';
+      card.innerHTML='<div class="photo-wrap">'+img+'<button class="fav-btn" data-pid="'+pid+'" onclick="toggleFavorite(this); event.stopPropagation();">♡</button></div>'+
+        '<div class="product-info"><h4>'+esc(x.name)+'</h4>'+priceHtml+'</div>';
+      grid.appendChild(card);
+      try{ if(window.isFavorited && isFavorited(pid)){ var fb=card.querySelector('.fav-btn'); fb.classList.add('favorited'); fb.textContent='♥'; } }catch(e){}
+      setupInfo(card.querySelector('.product-info'));
+    }
+    function setProductImage(name, src){
+      if(!/^uploads\/[\w-]+\.(jpe?g|png|webp)$/i.test(src)) return;
+      var card=cardByName(name);
+      if(card){
+        var im=card.querySelector('.photo-wrap img:not([style*="display: none"])') || card.querySelector('.photo-wrap img');
+        if(im){ im.src=src; im.className='product-photo-img'; im.removeAttribute('data-variant'); }
+        card.querySelectorAll('.photo-wrap img').forEach(function(o){ if(o!==im) o.remove(); });
+      }
+      document.querySelectorAll('.film-frame[data-name]').forEach(function(f){ if(f.getAttribute('data-name')===name){ var i=f.querySelector('img'); if(i) i.src=src; } });
+    }
+    // ---- availability (نفذت الكمية) ----
+    function applyAvailability(){
+      document.querySelectorAll('[data-pkey]').forEach(function(el){
+        var off=!!OFF[el.getAttribute('data-pkey')], row=el.closest('.opt, .menu-row');
+        if(row) row.classList.toggle('is-off', off);
+      });
+      document.querySelectorAll('.product-card').forEach(function(c){
+        var opts=c.querySelectorAll('.opt'); if(!opts.length) return;
+        var allOff=[].every.call(opts,function(o){ return o.classList.contains('is-off'); });
+        c.classList.toggle('sold-out', allOff);
+      });
+      document.querySelectorAll('.film-frame[data-name]').forEach(function(f){
+        var n=f.getAttribute('data-name'), keys=Object.keys(LIVE).filter(function(k){ return k.indexOf(n+'|')===0; });
+        f.classList.toggle('sold-out', keys.length>0 && keys.every(function(k){ return OFF[k]; }));
+      });
+      var before=cart.length;
+      cart=cart.filter(function(i){ return !OFF[i.name+'|'+i.size]; });
+      if(cart.length<before){ save(CART_KEY, cart); toast('شلنا من السلة أصناف نفذت حاليًا'); }
+    }
+
+    if(location.protocol!=='file:'){
+      fetch('prices.json?t='+Date.now(), {cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
+        (d.sections||[]).forEach(function(s){ (s.items||[]).forEach(function(it){ if(typeof it.price==='number') LIVE[it.name+'|'+(it.size||'')]=it.price; }); });
+        (d.extras||[]).forEach(function(x){ (x.sizes||[]).forEach(function(z){ LIVE[x.name+'|'+(z.size||'')]=z.price; }); addExtraCard(x); });
+        Object.keys(d.off||{}).forEach(function(k){ if(d.off[k]) OFF[k]=true; });
+        var imgs=d.images||{};
+        Object.keys(imgs).forEach(function(n){ setProductImage(n, imgs[n]); });
+        applyLivePrices(); applyAvailability(); render();
+      }).catch(function(){ /* بدون prices.json الموقع بيستخدم الأسعار المكتوبة فيه */ });
+    }
   })();
 
   // ---------- Storefront: navigation states, hero, categories, film strip, maps ----------
