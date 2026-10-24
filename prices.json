@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 4,
- "updated": "2026-10-24 18:38",
+ "rev": 5,
+ "updated": "2026-10-24 18:39",
  "sections": [
   {
    "id": "products",
@@ -1001,6 +1001,8 @@
   }
  ],
  "extras": [],
- "off": {},
+ "off": {
+  "مشكل سادة|كيلو": true
+ },
  "images": {}
 }
