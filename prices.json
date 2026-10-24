@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 6,
- "updated": "2026-10-24 18:40",
+ "rev": 7,
+ "updated": "2026-10-24 23:08",
  "sections": [
   {
    "id": "products",
@@ -1000,7 +1000,27 @@
    ]
   }
  ],
- "extras": [],
- "off": {},
- "images": {}
+ "extras": [
+  {
+   "id": "ebtrlg2oyg41",
+   "sid": "products",
+   "name": "فورسيزون 25*25",
+   "sizes": [
+    {
+     "size": "",
+     "price": 410
+    }
+   ],
+   "img": "uploads/78bd0df685dfe1c8c869.jpg",
+   "added": "2026-10-24"
+  }
+ ],
+ "off": {
+  "نص فاكهة ونص شيكولاتة جناش|مقاس 20": true
+ },
+ "images": {
+  "بلاك فورست ميني 18": "uploads/554d5467f5511a98e5ec.jpg",
+  "نص فاكهة ونص شيكولاتة جناش": "uploads/afdd40eb55fc947d6d3c.jpg",
+  "نص فاكهة ونص شيكولاتة نوتيلا": "uploads/dfdc4d39893746d6d103.jpg"
+ }
 }
