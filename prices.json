@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 17,
- "updated": "2026-11-08 18:56",
+ "rev": 18,
+ "updated": "2026-11-08 18:57",
  "theme": "default",
  "announce": {
   "on": false,
@@ -22,9 +22,9 @@
    "caption": "كنافة"
   },
   {
-   "name": "",
-   "img": "uploads/c1c324c6c081801d412c.jpg",
-   "caption": "بسبوسة"
+   "name": "فورسيزون 25*25",
+   "img": "",
+   "caption": "التورت"
   }
  ],
  "showcase": {
