@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 15,
- "updated": "2026-11-05 13:05",
+ "rev": 16,
+ "updated": "2026-11-08 11:34",
  "sections": [
   {
    "id": "products",
@@ -955,7 +955,7 @@
     {
      "name": "دونتس",
      "size": "",
-     "price": 27
+     "price": 28
     },
     {
      "name": "بيتزا",
