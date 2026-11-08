@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 18,
- "updated": "2026-11-08 18:57",
+ "rev": 19,
+ "updated": "2026-11-08 18:58",
  "theme": "default",
  "announce": {
   "on": false,
@@ -24,7 +24,7 @@
   {
    "name": "فورسيزون 25*25",
    "img": "",
-   "caption": "التورت"
+   "caption": "فورسيزون 25*25"
   }
  ],
  "showcase": {
