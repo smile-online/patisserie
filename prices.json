@@ -1,7 +1,43 @@
 {
  "version": 2,
- "rev": 16,
- "updated": "2026-11-08 11:34",
+ "rev": 17,
+ "updated": "2026-11-08 18:56",
+ "theme": "default",
+ "announce": {
+  "on": false,
+  "text": "",
+  "link": ""
+ },
+ "cats": [],
+ "customThemes": [],
+ "hero": [
+  {
+   "name": "شوكو كراميل 24",
+   "img": "",
+   "caption": "تورت"
+  },
+  {
+   "name": "كنافة مانجو",
+   "img": "",
+   "caption": "كنافة"
+  },
+  {
+   "name": "",
+   "img": "uploads/c1c324c6c081801d412c.jpg",
+   "caption": "بسبوسة"
+  }
+ ],
+ "showcase": {
+  "on": true,
+  "title": "جديد سمايل",
+  "sub": "أحدث الأصناف اللي نزلت الفروع — دوس على أي صنف تشوف تفاصيله",
+  "items": [
+   "هاف بول دارك",
+   "سويسرول شيكولاتة",
+   "تورتة المانجو",
+   "فطير كريمة"
+  ]
+ },
  "sections": [
   {
    "id": "products",
@@ -1011,6 +1047,7 @@
      "price": 410
     }
    ],
+   "flavors": [],
    "img": "uploads/78bd0df685dfe1c8c869.jpg",
    "added": "2026-10-24"
   }
@@ -1022,5 +1059,17 @@
   "بلاك فورست ميني 18": "uploads/554d5467f5511a98e5ec.jpg",
   "نص فاكهة ونص شيكولاتة جناش": "uploads/afdd40eb55fc947d6d3c.jpg",
   "نص فاكهة ونص شيكولاتة نوتيلا": "uploads/dfdc4d39893746d6d103.jpg"
+ },
+ "edits": {
+  "t": {},
+  "ph": {},
+  "href": {},
+  "img": {},
+  "hide": {}
+ },
+ "layout": {
+  "order": {},
+  "groups": [],
+  "hidden": {}
  }
 }
