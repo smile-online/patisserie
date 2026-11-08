@@ -1,0 +1,21 @@
+{
+  "name": "سمايل حلواني",
+  "short_name": "سمايل",
+  "description": "اطلب تورت وجاتوه وكنافة وحلويات شرقية من سمايل حلواني — حلو يبسطك",
+  "lang": "ar",
+  "dir": "rtl",
+  "id": "./",
+  "start_url": "./?source=app",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#00404A",
+  "theme_color": "#00404A",
+  "categories": ["food", "shopping"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
