@@ -644,7 +644,10 @@
   .stepper button{ border:none; background:transparent; width: 32px; height: 34px; font-size: 18px; font-weight:800; color: var(--teal-deep); cursor:pointer; font-family:'Tajawal'; }
   .stepper span{ font-weight:800; color: var(--teal-deep); min-width: 20px; text-align:center; }
   .menu-row{ align-items:center; }
+  .loc-hint{ margin:6px 0 0; font-size:13px; font-weight:700; color:#a33a2c; background:#fdecea; border-radius:10px; padding:8px 12px; line-height:1.6; }
   .menu-row .opt-ctl{ margin-right: 10px; }
+  .menu-row .menu-size{ font-size:.82em; color:#5b7370; font-weight:600; margin-inline-start:6px; }
+  .menu-row[data-replaced]{ display:none !important; }
   .add-row, .menu-add{ display:none !important; }
 
   /* Cart fab feedback */
@@ -2821,6 +2824,7 @@
       function ok(p){
         input.value='https://maps.google.com/?q='+p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);
         input.classList.remove('invalid'); if(btn) btn.disabled=false; saveForm(); updateZone();
+        try{ input.dispatchEvent(new Event('change')); }catch(e){}
       }
       function err(e, triedLow){
         if(e && e.code===1){
@@ -2852,6 +2856,20 @@
     ];
     var FAR_KM=8;   // أبعد من كده نعتبر العنوان غالبًا برّه نطاق التوصيل
     var nearest=null; // {b, km}
+    function isLocation(t){
+      t=String(t||'').trim();
+      if(parseLatLng(t)) return true;
+      return /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)\S*$/i.test(t);
+    }
+    (function(){
+      var el=document.getElementById('f-location'); if(!el) return;
+      var hint=document.createElement('div'); hint.className='loc-hint'; hint.style.display='none';
+      hint.textContent='اكتب العنوان في خانة «العنوان» — هنا دوس «📍 حدد موقعي» أو الصق لينك من خرائط جوجل.';
+      var row=el.closest('.loc-row'); if(row) row.parentNode.insertBefore(hint, row.nextSibling);
+      function chk(){ var v=el.value.trim(); var bad=v && v!=='جاري تحديد الموقع...' && !isLocation(v); hint.style.display=bad?'block':'none'; el.classList.toggle('invalid', !!bad); }
+      el.addEventListener('blur', chk); el.addEventListener('change', chk);
+      el.addEventListener('input', function(){ if(hint.style.display==='block') chk(); });
+    })();
     function parseLatLng(t){
       t=latinDigits(t||'');
       var m=t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/(-?\d{1,2}\.\d{2,})\s*,\s*(-?\d{1,3}\.\d{2,})/);
@@ -2923,6 +2941,10 @@
         v[f[0]]=val; el.classList.toggle('invalid', !val); if(!val) missing.push(f[1]);
       });
       var phone=latinDigits(v['f-phone']).replace(/[\s\-]/g,'').replace(/^\+?20/,'0');
+      if(v['f-location'] && !isLocation(v['f-location'])){
+        document.getElementById('f-location').classList.add('invalid');
+        missing.push('اللوكيشن: دوس «📍 حدد موقعي» أو الصق لينك المكان من خرائط جوجل (مش كتابة العنوان)');
+      }
       if(v['f-phone'] && !/^01[0125]\d{8}$/.test(phone)){
         document.getElementById('f-phone').classList.add('invalid');
         missing.push('رقم تليفون صحيح (11 رقم يبدأ بـ 01)');
@@ -2943,20 +2965,26 @@
         });
         return;
       }
+      var LINE='——————————————';
       var L=[];
-      L.push('🛒 *طلب جديد — سمايل حلواني*','');
-      L.push('👤 *الاسم:* '+v['f-name']);
-      L.push('📞 *التليفون:* '+phone);
-      L.push('🗺️ *المحافظة:* '+v['f-gov']+' — *المنطقة:* '+v['f-city']);
-      L.push('🏪 *أقرب فرع (تلقائي — للكول سنتر):* '+(nearest ? nearest.b.name+' — حوالي '+nearest.km.toFixed(1)+' كم' : 'لم يتحدد — اللوكيشن مش فيه إحداثيات'));
-      if(nearest && nearest.km>FAR_KM) L.push('🚩 *تنبيه:* العنوان بعيد عن أقرب فرع توصيل (أكتر من '+FAR_KM+' كم) — غالبًا برّه الزون');
-      L.push('🏠 *العنوان:* '+v['f-address']);
-      L.push('   عقار رقم: '+v['f-building']+' | الدور: '+v['f-floor']+' | شقة: '+v['f-apt']);
-      L.push('📍 *اللوكيشن:* '+v['f-location'],'','*الأصناف:*');
-      cart.forEach(function(i,n){ L.push((n+1)+'- '+i.name+(label(i)?' ('+label(i)+')':'')+' × '+i.qty+' = '+money(i.price*i.qty)); });
-      L.push('','💰 *الإجمالي (بدون التوصيل):* '+money(total()),'','📝 *ملاحظات:* '+v['f-notes'],'');
-      L.push('ملحوظة: يتم إضافة خدمة التوصيل من خلال متلقي الطلب، وفي حالة عدم توفر منتج سوف يتم التواصل معك.');
-      L.push('⚠️ برجاء مراجعة العنوان والتأكد إنه داخل نطاق توصيل الفرع.');
+      L.push('*طلب جديد — سمايل حلواني*', LINE);
+      L.push('*الاسم:* '+v['f-name']);
+      L.push('*التليفون:* '+phone);
+      L.push('', '*العنوان*');
+      L.push(v['f-gov']+' — '+v['f-city']);
+      L.push(v['f-address']);
+      L.push('عقار '+v['f-building']+' · دور '+v['f-floor']+' · شقة '+v['f-apt']);
+      L.push('اللوكيشن: '+v['f-location']);
+      L.push('أقرب فرع: '+(nearest ? nearest.b.name.replace(/^فرع\s*/,'')+' (حوالي '+nearest.km.toFixed(1)+' كم)' : 'لم يتحدد'));
+      if(nearest && nearest.km>FAR_KM) L.push('*تنبيه:* العنوان بعيد عن أقرب فرع توصيل (أكتر من '+FAR_KM+' كم) — غالبًا برّه الزون');
+      var nItems=cart.length;
+      L.push('', '*الأصناف* — '+nItems+(nItems===1?' صنف':nItems===2?' صنفين':nItems<=10?' أصناف':' صنف'), LINE);
+      cart.forEach(function(i,n){
+        L.push((n+1)+'. *'+i.name+'*');
+        L.push('      '+(label(i)?label(i)+'  |  ':'')+'العدد '+i.qty+'  |  '+money(i.price*i.qty));
+      });
+      L.push(LINE, '*الإجمالي: '+money(total())+'*', '(من غير خدمة التوصيل)');
+      L.push('', '*ملاحظات:* '+v['f-notes']);
       var waText=L.join('\n');
       var ORDERS_URL='';   // الطلبات بتروح واتساب
       var record={ id:null, at:Date.now(), total:total(), phone:phone, via:'wa', items:cart.map(function(i){ return {name:i.name, size:i.size||'', flavor:i.flavor||'', qty:i.qty, price:i.price}; }) };
@@ -3032,12 +3060,23 @@
     var GROUP_OF={}, LAY_UNDO=[], HIDDEN={};
     function rawCard(n){
       var cs=document.querySelectorAll('.product-card');
-      for(var i=0;i<cs.length;i++){ var c=cs[i], p=c.dataset.pname || ((c.querySelector('h4')||{}).textContent||'').trim(); if(p===n) return c; }
+      for(var i=0;i<cs.length;i++){ var c=cs[i]; if(c.hasAttribute('data-replaced')) continue; var p=c.dataset.pname || ((c.querySelector('h4')||{}).textContent||'').trim(); if(p===n) return c; }
       return null;
     }
     function cardByName(n){ return rawCard(n); }
     window.SmileCardOf=function(n){ if(HIDDEN[n]) return null; var g=GROUP_OF[n]; return rawCard(g||n); };
-    function menuRowByName(n){ var rs=document.querySelectorAll('.menu-row'); for(var i=0;i<rs.length;i++){ var m=rs[i].querySelector('.menu-name'); if(m && m.textContent.trim()===n) return rs[i]; } return null; }
+    function menuRowByName(n){ var rs=document.querySelectorAll('.menu-row'); for(var i=0;i<rs.length;i++){ if(rs[i].hasAttribute('data-replaced')) continue; var m=rs[i].querySelector('.menu-name'); if(rs[i].dataset.pname===n || (!rs[i].dataset.pname && m && m.textContent.trim()===n)) return rs[i]; } return null; }
+    function addMenuRows(x, old){
+      if(document.querySelector('.menu-row[data-xid="'+x.id+'"]')) return;
+      var ref=old;
+      (x.sizes||[]).forEach(function(z){
+        var key=x.name+'|'+(z.size||''), nm=x.name, sz=z.size||'';
+        var r=document.createElement('div'); r.className='menu-row'; r.setAttribute('data-xid', x.id); r.dataset.pname=x.name;
+        r.innerHTML='<span class="menu-name">'+esc(x.name)+(sz?' <small class="menu-size">'+esc(sz)+'</small>':'')+'</span><span class="menu-dots"></span><span class="menu-price" data-pkey="'+esc(key)+'" data-base="'+(+z.price||0)+'">'+money(z.price)+'</span>';
+        ref.parentNode.insertBefore(r, ref.nextSibling); ref=r;
+        r.appendChild(buildCtl(function(){ return {key:key, name:nm, size:sz, price:priceOf(key, +z.price||0)}; }, null).el);
+      });
+    }
     function undoLayout(){
       for(var i=LAY_UNDO.length-1;i>=0;i--){ try{ LAY_UNDO[i](); }catch(e){} }
       LAY_UNDO=[]; GROUP_OF={}; HIDDEN={};
@@ -3052,7 +3091,7 @@
     function hideEl(el){ if(!el) return; el.setAttribute('data-lay-hide',''); LAY_UNDO.push(function(){ el.removeAttribute('data-lay-hide'); }); }
     function applyLayout(L){
       L=L||{};
-      Object.keys(L.hidden||{}).forEach(function(n){ if(!L.hidden[n]) return; HIDDEN[n]=true; hideEl(rawCard(n)); hideEl(menuRowByName(n)); });
+      Object.keys(L.hidden||{}).forEach(function(n){ if(!L.hidden[n]) return; HIDDEN[n]=true; hideEl(rawCard(n)); var mr=menuRowByName(n); hideEl(mr); document.querySelectorAll('.menu-row[data-xid]').forEach(function(r){ if(r!==mr && r.dataset.pname===n) hideEl(r); }); });
       (L.groups||[]).forEach(function(g){
         var items=(g.items||[]).filter(function(n){ return !HIDDEN[n] && rawCard(n); });
         if(items.length<2) return;
@@ -3087,7 +3126,7 @@
         parents.forEach(function(p){
           var units=[].filter.call(p.children, function(u){ return u.matches('.product-card, .menu-row'); });
           units.forEach(function(u, i){ if(u.dataset.ord0===undefined) u.dataset.ord0=i; });
-          var key=function(u){ var n=u.classList.contains('menu-row') ? ((u.querySelector('.menu-name')||{}).textContent||'').trim() : (u.dataset.pname||''); var g=u.getAttribute('data-group'); var r=g && rank['g:'+g]!==undefined ? rank['g:'+g] : rank[n]; return r===undefined ? 100000+(+u.dataset.ord0) : r; };
+          var key=function(u){ var n=u.classList.contains('menu-row') ? (u.dataset.pname || ((u.querySelector('.menu-name')||{}).textContent||'').trim()) : (u.dataset.pname||''); var g=u.getAttribute('data-group'); var r=g && rank['g:'+g]!==undefined ? rank['g:'+g] : rank[n]; return r===undefined ? 100000+(+u.dataset.ord0) : r; };
           units.slice().sort(function(a,b){ return key(a)-key(b); }).forEach(function(u){ p.appendChild(u); });
         });
       });
@@ -3098,8 +3137,18 @@
       });
     }
     function addExtraCard(x){
+      // منتج أصلي اتعدّل من اللوحة: الكارت القديم يستخبى والجديد ياخد مكانه وصورته
+      var old=null;
+      if(x.replaces){
+        var cs=document.querySelectorAll('.product-card[data-replaced]');
+        for(var j=0;j<cs.length;j++){ if(cs[j].getAttribute('data-replaced')===x.replaces) old=cs[j]; }
+        if(!old){ old=cardByName(x.replaces); if(old){ old.setAttribute('data-replaced', x.replaces); old.setAttribute('data-lay-hide',''); old.dataset.pname=''; } }
+        if(!old){ var mrs=document.querySelectorAll('.menu-row[data-replaced]'); for(var q=0;q<mrs.length;q++){ if(mrs[q].getAttribute('data-replaced')===x.replaces) old=mrs[q]; } }
+        if(!old){ old=menuRowByName(x.replaces); if(old){ old.setAttribute('data-replaced', x.replaces); old.setAttribute('data-lay-hide',''); } }
+        if(old && old.classList.contains('menu-row')){ var osec=old.closest('.product-section'); if(osec && osec.id===x.sid){ addMenuRows(x, old); return; } }
+      }
       var sec=document.getElementById(x.sid); if(!sec || cardByName(x.name)) return;
-      var grid=sec.querySelector('.products-grid'); if(!grid) return;
+      var grid=(old && old.parentNode && sec.contains(old)) ? old.parentNode : sec.querySelector('.products-grid'); if(!grid) return;
       var card=document.createElement('div'); card.className='product-card';
       var pid='x'+x.id, sizes=x.sizes||[], priceHtml;
       if(sizes.length>1 || (sizes[0] && sizes[0].size)){
@@ -3108,11 +3157,13 @@
         priceHtml='<span class="price">'+money(sizes[0]?sizes[0].price:0)+'</span>';
       }
       var logo=document.querySelector('.product-photo-logo, .brand img');
-      var img=x.img ? '<img class="product-photo-img" src="'+esc(x.img)+'" alt="'+esc(x.name)+'" loading="lazy">'
+      var oim=old && !x.img ? old.querySelector('.photo-wrap img') : null;
+      if(old){ var ofb=old.querySelector('.fav-btn'); if(ofb && ofb.getAttribute('data-pid')) pid=ofb.getAttribute('data-pid'); }
+      var img=oim ? '<img class="'+esc(oim.className)+'" src="'+esc(oim.getAttribute('src'))+'" alt="'+esc(x.name)+'" loading="lazy">' : x.img ? '<img class="product-photo-img" src="'+esc(x.img)+'" alt="'+esc(x.name)+'" loading="lazy">'
                     : '<img class="product-photo-logo" src="'+(logo?logo.src:'')+'" alt="'+esc(x.name)+'">';
       card.innerHTML='<div class="photo-wrap">'+img+'<button class="fav-btn" data-pid="'+pid+'" onclick="toggleFavorite(this); event.stopPropagation();">♡</button></div>'+
         '<div class="product-info"><h4>'+esc(x.name)+'</h4>'+((x.flavors||[]).length?'<div class="flavor-line">'+x.flavors.map(esc).join(' · ')+'</div>':'')+priceHtml+'</div>';
-      grid.appendChild(card);
+      if(old && old.parentNode===grid) grid.insertBefore(card, old.nextSibling); else grid.appendChild(card);
       try{ if(window.isFavorited && isFavorited(pid)){ var fb=card.querySelector('.fav-btn'); fb.classList.add('favorited'); fb.textContent='♥'; } }catch(e){}
       setupInfo(card.querySelector('.product-info'));
     }
@@ -3213,6 +3264,7 @@
       Object.keys(OFF).forEach(function(k){ delete OFF[k]; });
       (d.sections||[]).forEach(function(s){ (s.items||[]).forEach(function(it){ if(typeof it.price==='number') LIVE[it.name+'|'+(it.size||'')]=it.price; }); });
       ensureCats(d.cats||[]);
+      (d.extras||[]).forEach(function(x){ if(x.replaces){ Object.keys(LIVE).forEach(function(k){ if(k.indexOf(x.replaces+'|')===0) delete LIVE[k]; }); } });
       (d.extras||[]).forEach(function(x){ (x.sizes||[]).forEach(function(z){ LIVE[x.name+'|'+(z.size||'')]=z.price; }); addExtraCard(x); });
       finishCats(d.cats||[]);
       Object.keys(d.off||{}).forEach(function(k){ if(d.off[k]) OFF[k]=true; });

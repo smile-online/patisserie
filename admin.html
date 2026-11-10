@@ -365,6 +365,7 @@ div.theme-card{ cursor:pointer; }
 .flv-chip{ display:inline-flex; align-items:center; gap:6px; background:var(--paper); border:1.5px solid var(--gold-soft); color:var(--teal); font-weight:800; font-size:14px; padding:5px 8px 5px 12px; border-radius:999px; }
 .flv-chip button{ border:0; background:#fff; width:22px; height:22px; border-radius:50%; color:var(--err); font-size:11px; }
 .flv-add{ display:flex; gap:8px; } .flv-add .field{ padding:10px 14px; font-size:15px; }
+.pe-rep{ margin:0 22px; margin-top:14px; background:var(--paper); border:1.5px dashed var(--gold-soft); border-radius:12px; padding:10px 14px; font-size:14px; color:var(--teal); display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:space-between; }
 .savebar.hide{ display:none; }
 @media (max-width:900px){ .deploy{ display:none; } }
 </style>
@@ -539,13 +540,14 @@ function cleanData(input, base) {
     titles.add(title);
     out.cats.push({ id: c.id, title, group: ['east', 'west', 'solo'].includes(c.group) ? c.group : 'solo', sub: cleanTxt(c.sub, 90) });
   });
-  const sids = out.sections.map(s => s.id).concat(out.cats.map(c => c.id)), seen = new Set(), extras = [];
+  const sids = out.sections.map(s => s.id).concat(out.cats.map(c => c.id)), seen = new Set(), extras = [], reps = new Set();
   (input.extras || []).slice(0, 300).forEach(x => {
     if (!x || !/^[a-z0-9]{6,24}$/.test(x.id || '')) return;
     if (!sids.includes(x.sid)) return err.push('منتج جديد في قسم غير معروف');
     const name = String(x.name || '').replace(/\s+/g, ' ').trim().slice(0, 60);
     if (!name) return err.push('فيه منتج جديد من غير اسم');
-    if (names.has(name) || seen.has(name)) return err.push('الاسم موجود قبل كده: ' + name);
+    const replaces = typeof x.replaces === 'string' && names.has(x.replaces) && !reps.has(x.replaces) ? x.replaces : '';
+    if ((names.has(name) && name !== replaces) || seen.has(name)) return err.push('الاسم موجود قبل كده: ' + name);
     const sizes = [];
     for (const z of (x.sizes || []).slice(0, 6)) { const p = num(z.price); if (p === null) return err.push('سعر غلط في: ' + name); sizes.push({ size: String(z.size || '').trim().slice(0, 30), price: p }); }
     if (!sizes.length) return err.push(name + ' من غير سعر');
@@ -554,7 +556,8 @@ function cleanData(input, base) {
     if (sizes.length > 1 && labels.includes('')) return err.push(name + ': اكتب اسم لكل حجم');
     seen.add(name); sizes.forEach(z => keys.add(name + '|' + z.size));
     const flavors = [...new Set((Array.isArray(x.flavors) ? x.flavors : []).map(f => cleanTxt(f, 30)).filter(Boolean))].slice(0, 12);
-    extras.push({ id: x.id, sid: x.sid, name, sizes, flavors, img: /^uploads\/[\w-]+\.(jpe?g|png|webp)$/i.test(x.img || '') ? x.img : '', added: /^\d{4}-\d\d-\d\d$/.test(x.added || '') ? x.added : cairoNow().slice(0, 10) });
+    if (replaces) reps.add(replaces);
+    extras.push({ id: x.id, sid: x.sid, name, sizes, flavors, replaces, img: /^uploads\/[\w-]+\.(jpe?g|png|webp)$/i.test(x.img || '') ? x.img : '', added: /^\d{4}-\d\d-\d\d$/.test(x.added || '') ? x.added : cairoNow().slice(0, 10) });
   });
   out.extras = extras;
   out.off = {}; Object.keys(input.off || {}).forEach(k => { if (input.off[k] && keys.has(k)) out.off[k] = true; });
@@ -635,16 +638,29 @@ function products(d = draft) {
       by.get(it.name).sizes.push({ size: it.size, k: it.name + '|' + it.size, ref: ['s', si, ii] });
     });
   });
-  (d.extras || []).forEach((x, xi) => out.push({ key: 'x::' + x.id, sid: x.sid, name: x.name, extra: true, xi, id: x.id,
+  (d.extras || []).forEach((x, xi) => out.push({ key: 'x::' + x.id, sid: x.sid, name: x.name, extra: true, xi, id: x.id, replaces: x.replaces || '',
     sizes: x.sizes.map((z, zi) => ({ size: z.size, k: x.name + '|' + z.size, ref: ['x', xi, zi] })) }));
-  return out;
+  const rep = new Set((d.extras || []).map(x => x.replaces).filter(Boolean));
+  if (!rep.size) return out;
+  // المنتج الأصلي المعدّل بيظهر في نفس مكانه
+  const res = out.filter(p => !p.extra || !p.replaces);
+  out.filter(p => p.extra && p.replaces).forEach(p => { const i = res.findIndex(q => !q.extra && q.name === p.replaces); if (i > -1) res.splice(i, 1, p); else res.push(p); });
+  return res.filter(p => p.extra || !rep.has(p.name));
 }
 const getPrice = (d, ref) => ref[0] === 's' ? d.sections[ref[1]].items[ref[2]].price : d.extras[ref[1]].sizes[ref[2]].price;
 function setPrice(ref, v) { if (ref[0] === 's') draft.sections[ref[1]].items[ref[2]].price = v; else draft.extras[ref[1]].sizes[ref[2]].price = v; }
-const origPrice = (p, z) => { if (p.extra) { const ox = (orig.extras || []).find(x => x.id === p.id); const oz = ox && ox.sizes.find(s => s.size === z.size); return oz ? oz.price : null; } return getPrice(orig, z.ref); };
+const origPrice = (p, z) => {
+  if (p.extra) {
+    const ox = (orig.extras || []).find(x => x.id === p.id); const oz = ox && ox.sizes.find(s => s.size === z.size);
+    if (oz) return oz.price;
+    if (!ox && p.replaces) { const bp = products(orig).find(q => !q.extra && q.name === p.replaces); const bz = bp && bp.sizes.find(s => s.size === z.size); return bz ? getPrice(orig, bz.ref) : null; }
+    return null;
+  }
+  return getPrice(orig, z.ref);
+};
 const isOff = (d, k) => !!(d.off && d.off[k]);
 const productOff = (p, d = draft) => p.sizes.every(z => isOff(d, z.k));
-const imgOf = (p, d = draft) => srcFor((d.images && d.images[p.name]) || (p.extra ? d.extras[p.xi].img : '')) || siteImg[p.name] || '';
+const imgOf = (p, d = draft) => srcFor((d.images && d.images[p.name]) || (p.extra ? ((d.extras[p.xi] || {}).img || '') : '')) || siteImg[p.name] || (p.replaces ? siteImg[p.replaces] : '') || '';
 const secTitle = sid => { const s = allSecs().find(s => s.id === sid); return s ? shortTitle(s.title) : sid; };
 
 function changes() {
@@ -652,7 +668,7 @@ function changes() {
   const P = products(draft), O = products(orig), oByKey = new Map(O.map(p => [p.key, p]));
   P.forEach(p => {
     const op = oByKey.get(p.key);
-    if (p.extra && !op) { out.added.push(p); return; }
+    if (p.extra && !op) { if (p.replaces) out.edited.push(p); else out.added.push(p); return; }
     p.sizes.forEach(z => {
       const a = op ? (op.sizes.find(s => s.size === z.size) || null) : null;
       const ov = a ? getPrice(orig, a.ref) : null, nv = getPrice(draft, z.ref);
@@ -668,7 +684,7 @@ function changes() {
     const oi = (orig.images || {})[p.name] || '', ni = (draft.images || {})[p.name] || '';
     if (oi !== ni) out.image.push({ p, reset: !ni });
   });
-  O.filter(o => o.extra && !P.some(p => p.key === o.key)).forEach(o => out.removed.push(o));
+  O.filter(o => o.extra && !P.some(p => p.key === o.key)).forEach(o => { const bp = o.replaces && P.find(p => !p.extra && p.name === o.replaces); if (bp) out.edited.push(bp); else out.removed.push(o); });
   out.look = [];
   if ((draft.theme || 'default') !== (orig.theme || 'default')) out.look.push('الثيم: ' + (allThemes().find(t => t.id === draft.theme) || THEMES[0]).name);
   const diffList = (a, b, label) => {
@@ -853,7 +869,7 @@ function renderList(v, list, title, sub, showSec, emptyHtml, sid) {
 function cardHtml(p, showSec) {
   const im = imgOf(p), off = productOff(p), multi = p.sizes.length > 1 || p.sizes[0].size !== '';
   const changedPrice = p.sizes.some(z => { const o = origPrice(p, z); return o !== null && o !== getPrice(draft, z.ref); });
-  const isNew = p.extra && !(orig.extras || []).some(x => x.id === p.id);
+  const isNew = p.extra && !p.replaces && !(orig.extras || []).some(x => x.id === p.id);
   const flv = p.extra ? (draft.extras[p.xi].flavors || []) : (siteFlv[p.name] || []);
   const rows = p.sizes.map((z, i) => {
     const val = getPrice(draft, z.ref), o = origPrice(p, z), ch = o !== null && o !== val, zOff = isOff(draft, z.k);
@@ -866,7 +882,7 @@ function cardHtml(p, showSec) {
   }).join('');
   return `<article class="pcard ${off ? 'off' : ''} ${productDirty(p) ? 'dirty' : ''}" data-key="${esc(p.key)}">
     <div class="pimg">${im ? `<img src="${esc(im)}" alt="" loading="lazy">` : '<span class="ph">س</span>'}
-      <span class="tags">${isNew ? '<span class="tag new">جديد</span>' : p.extra ? '<span class="tag new">مضاف</span>' : ''}${changedPrice ? '<span class="tag ch">سعر جديد</span>' : ''}</span>
+      <span class="tags">${isNew ? '<span class="tag new">جديد</span>' : p.extra ? (p.replaces ? '<span class="tag ch">معدّل</span>' : '<span class="tag new">مضاف</span>') : ''}${changedPrice ? '<span class="tag ch">سعر جديد</span>' : ''}</span>
       <button type="button" class="photo-btn" data-photo>📷 تغيير الصورة</button></div>
     <div class="pbody">
       <div class="ptitle"><h3>${esc(p.name)}</h3>${showSec ? `<span class="tag" style="box-shadow:none;background:var(--paper)">${esc(secTitle(p.sid))}</span>` : ''}</div>
@@ -875,7 +891,7 @@ function cardHtml(p, showSec) {
       <div class="pfoot">
         <button type="button" class="sw ${off ? 'is-off' : ''}" data-off role="switch" aria-checked="${!off}"><i></i>${off ? 'نفذت الكمية' : 'متاح للطلب'}</button>
         <span class="sp"></span>
-        ${p.extra ? `<button class="icon-btn" data-edit title="تعديل">✎</button>` : ''}<button class="icon-btn del" data-del title="حذف من الموقع">🗑</button>
+        <button class="icon-btn" data-edit title="تعديل الاسم والمقاسات والنكهات">✎</button><button class="icon-btn del" data-del title="حذف من الموقع">🗑</button>
       </div>
     </div></article>`;
 }
@@ -979,8 +995,11 @@ function setupDrop(m, done, keepPng) {
 
 /* ================= product editor (new / edit) ================= */
 function productEditor(p, sid) {
-  const x = p ? clone(draft.extras[p.xi]) : { id: rid(), sid: sid || (route.v === 'sec' ? route.sid : draft.sections[0].id), name: '', sizes: [{ size: '', price: '' }], img: '', added: new Date().toISOString().slice(0, 10) };
+  const base = p && !p.extra;
+  const x = base ? { id: rid(), sid: p.sid, name: p.name, replaces: p.name, sizes: p.sizes.map(z => ({ size: z.size, price: getPrice(draft, z.ref) })), flavors: (siteFlv[p.name] || []).slice(), img: '', added: new Date().toISOString().slice(0, 10) }
+    : p ? clone(draft.extras[p.xi]) : { id: rid(), sid: sid || (route.v === 'sec' ? route.sid : draft.sections[0].id), name: '', sizes: [{ size: '', price: '' }], img: '', added: new Date().toISOString().slice(0, 10) };
   const m = modal(`<div class="modal-h"><h3>${p ? 'تعديل ' + esc(p.name) : 'منتج جديد'}</h3><button class="icon-btn" data-x aria-label="إغلاق">✕</button></div>
+    ${x.replaces ? `<div class="pe-rep">المنتج ده أصلي في الموقع — بعد الحفظ هيتعرض بتعديلاتك في نفس مكانه.${!base ? ' <button type="button" class="btn ghost sm" data-restore-orig>↩ رجّعه زي الأصل</button>' : ''}</div>` : ''}
     <div class="modal-b">
       <label class="lbl-b" for="pe-name">اسم المنتج</label>
       <input class="field" id="pe-name" maxlength="60" value="${esc(x.name)}" placeholder="مثال: تورتة لوتس 24" autofocus>
@@ -990,15 +1009,19 @@ function productEditor(p, sid) {
       <div id="pe-sizes"></div>
       <button class="btn ghost sm" id="pe-add-size" type="button">＋ مقاس / حجم تاني</button>
       <p class="hint">زي التورت: «مقاس 20» بسعر و«مقاس 24» بسعر — أو كيلو / نص ك / ربع ك. لو المنتج بسعر واحد سيب خانة الحجم فاضية.</p>
-      <label class="lbl-b">النكهات <small style="font-weight:500;color:var(--muted)">(اختياري — العميل بيختار نكهة قبل ما يضيف)</small></label>
+      <div id="pe-flv-wrap"><label class="lbl-b">النكهات <small style="font-weight:500;color:var(--muted)">(اختياري — العميل بيختار نكهة قبل ما يضيف)</small></label>
       <div class="flv-ed" id="pe-flv"></div>
       <div class="flv-add"><input class="field" id="pe-flv-in" maxlength="30" placeholder="اكتب نكهة ودوس إضافة — مثلًا: لوتس"><button class="btn ghost sm" id="pe-flv-btn" type="button">＋ إضافة</button></div>
-      <p class="hint">تقدر تكتب كذا نكهة مرة واحدة بينهم فاصلة: لوتس، توت أحمر، توت أزرق</p>
-      <label class="lbl-b">الصورة</label>
+      <p class="hint">تقدر تكتب كذا نكهة مرة واحدة بينهم فاصلة: لوتس، توت أحمر، توت أزرق</p></div>
+      <div id="pe-img-wrap"><label class="lbl-b">الصورة</label>
       <label class="drop" id="drop">${x.img ? `<img src="${esc(srcFor(x.img))}" alt="">` : ''}<div style="position:relative;background:rgba(255,255,255,.88);padding:12px 18px;border-radius:14px"><b>اسحب صورة أو دوس للاختيار</b>لو مفيش صورة هيظهر شعار سمايل</div><input type="file" accept="image/jpeg,image/png,image/webp" id="file"></label>
-    </div>
+    </div></div>
     <div class="modal-f"><button class="btn" data-ok>${p ? 'تطبيق التعديل' : 'إضافة المنتج'}</button><button class="btn ghost" data-x>إلغاء</button></div>`);
   $$('[data-x]', m).forEach(b => b.onclick = closeModal);
+  if (siteMenu.has(x.replaces || '')) { // صنف في قايمة (سطر) — مالوش صورة ولا نكهات
+    $('#pe-flv-wrap', m).style.display = 'none'; $('#pe-img-wrap', m).style.display = 'none';
+    $('#pe-add-size', m).insertAdjacentHTML('afterend', '<p class="hint">الصنف ده بيظهر كسطر في قايمة — كل مقاس هيبقى سطر لوحده بسعره.</p>');
+  }
   const box = $('#pe-sizes', m);
   const draw = () => {
     box.innerHTML = x.sizes.map((z, i) => `<div class="size-ed"><input class="field" data-sz="${i}" maxlength="30" value="${esc(z.size)}" placeholder="${x.sizes.length > 1 ? 'اسم الحجم' : 'الحجم (اختياري)'}"><input class="field" data-pr="${i}" inputmode="decimal" value="${esc(z.price)}" placeholder="السعر" style="text-align:center;font-weight:900"><button class="icon-btn del" data-rm="${i}" ${x.sizes.length < 2 ? 'disabled style="opacity:.3"' : ''} aria-label="حذف الحجم">✕</button></div>`).join('');
@@ -1015,6 +1038,14 @@ function productEditor(p, sid) {
   drawF();
   $('#pe-add-size', m).onclick = () => { if (x.sizes.length < 6) { x.sizes.push({ size: '', price: '' }); draw(); $$('[data-sz]', box).pop().focus(); } };
   setupDrop(m, path => { x.img = path; toast('الصورة اترفعت', 'ok'); });
+  const ro = $('[data-restore-orig]', m);
+  if (ro) ro.onclick = async () => {
+    const cur = draft.extras[p.xi];
+    if (!await confirmBox('رجوع للأصل', `«${esc(cur.name)}» هيرجع زي ما كان في الموقع (الاسم «${esc(cur.replaces)}» والمقاسات الأصلية).`, 'رجّعه')) return;
+    if (cur.name !== cur.replaces) { renameInLayout(cur.name, cur.replaces); if (draft.images[cur.name]) { draft.images[cur.replaces] = draft.images[cur.name]; delete draft.images[cur.name]; } }
+    Object.keys(draft.off).forEach(k => { if (k.startsWith(cur.name + '|')) delete draft.off[k]; });
+    draft.extras.splice(p.xi, 1); fixLayout(); closeModal(); refresh(); toast('رجع زي الأصل — احفظ عشان يتطبّق', 'ok');
+  };
   $('[data-ok]', m).onclick = () => {
     x.name = $('#pe-name', m).value.trim().replace(/\s+/g, ' ');
     x.sid = $('#pe-sec', m).value;
@@ -1031,7 +1062,14 @@ function productEditor(p, sid) {
     if (new Set(labels).size !== labels.length) return toast('فيه حجمين بنفس الاسم', 'err');
     x.sizes = sizes;
     if (fin.value.trim()) addF();
-    if (p) {
+    if (base) {
+      if (x.name !== p.name) {
+        Object.keys(draft.off).forEach(k => { if (k.startsWith(p.name + '|')) { draft.off[x.name + k.slice(p.name.length)] = true; delete draft.off[k]; } });
+        if (draft.images[p.name]) { draft.images[x.name] = draft.images[p.name]; delete draft.images[p.name]; }
+        renameInLayout(p.name, x.name);
+      }
+      draft.extras.push(x);
+    } else if (p) {
       const oldName = draft.extras[p.xi].name;
       if (oldName !== x.name) {
         Object.keys(draft.off).forEach(k => { if (k.startsWith(oldName + '|')) { draft.off[x.name + k.slice(oldName.length)] = true; delete draft.off[k]; } });
@@ -1402,6 +1440,8 @@ function renameInLayout(a, b) {
   if (L.hidden[a]) { L.hidden[b] = true; delete L.hidden[a]; }
   L.groups.forEach(g => { g.items = g.items.map(n => n === a ? b : n); if (g.img === a) g.img = b; });
   Object.keys(L.order).forEach(s => { L.order[s] = L.order[s].map(k => k === a ? b : k); });
+  (draft.hero || []).forEach(h => { if (h && h.name === a) h.name = b; });
+  if (draft.showcase && Array.isArray(draft.showcase.items)) draft.showcase.items = draft.showcase.items.map(it => typeof it === 'string' ? (it === a ? b : it) : (it && it.name === a ? Object.assign(it, { name: b }) : it));
 }
 function layoutUnits(sid) {
   const L = draft.layout, P = products().filter(p => p.sid === sid && !isHidden(p));
@@ -1416,11 +1456,12 @@ function layoutUnits(sid) {
   return units.sort((a, b) => r(a) - r(b));
 }
 const priceLine = p => p.sizes.map(z => (z.size ? z.size + ' ' : '') + money(getPrice(draft, z.ref))).join(' · ');
-const canGroup = p => !(siteFlv[p.name] || []).length && !(p.extra && (draft.extras[p.xi].flavors || []).length) && !siteMenu.has(p.name);
+const canGroup = p => !(siteFlv[p.name] || []).length && !(p.extra && (draft.extras[p.xi].flavors || []).length) && !siteMenu.has(p.name) && !(p.replaces && siteMenu.has(p.replaces));
 function deleteProducts(list) {
   list.forEach(p => {
     if (p.extra) {
       const i = draft.extras.findIndex(x => x.id === p.id); if (i > -1) draft.extras.splice(i, 1);
+      if (p.replaces) draft.layout.hidden[p.replaces] = true;
       Object.keys(draft.off).forEach(k => { if (k.startsWith(p.name + '|')) delete draft.off[k]; });
       delete draft.images[p.name];
     } else draft.layout.hidden[p.name] = true;
@@ -1762,7 +1803,7 @@ function liveProduct(name) {
       <p class="hint" style="margin-top:0">${esc(secTitle(p.sid))} — الأسعار الجديدة بتظهر للعملاء بعد الحفظ.</p>
       <div class="lv-prices">${p.sizes.map((z, i) => `<label><span>${esc(z.size || 'السعر')}</span><input class="field" data-pz="${i}" inputmode="decimal" value="${esc(getPrice(draft, z.ref))}"><button type="button" class="sw ${isOff(draft, z.k) ? 'is-off' : ''}" data-oz="${i}"><i></i>${isOff(draft, z.k) ? 'نفذت' : 'متاح'}</button></label>`).join('')}</div>
     </div>
-    <div class="modal-f"><button class="btn gold" data-ok>تطبيق</button><button class="btn ghost" data-photo>📷 الصورة</button>${p.extra ? '<button class="btn ghost" data-full>✎ الاسم والأحجام</button>' : ''}<span class="sp"></span><button class="btn ghost" data-x>إلغاء</button></div>`);
+    <div class="modal-f"><button class="btn gold" data-ok>تطبيق</button><button class="btn ghost" data-photo>📷 الصورة</button><button class="btn ghost" data-full>✎ الاسم والمقاسات والنكهات</button><span class="sp"></span><button class="btn ghost" data-x>إلغاء</button></div>`);
   $$('[data-x]', m).forEach(b => b.onclick = closeModal);
   const off = p.sizes.map(z => isOff(draft, z.k));
   $$('[data-oz]', m).forEach(b => b.onclick = () => { const i = +b.dataset.oz; off[i] = !off[i]; b.classList.toggle('is-off', off[i]); b.lastChild.textContent = off[i] ? 'نفذت' : 'متاح'; });
