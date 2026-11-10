@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 21,
- "updated": "2026-11-08 19:21",
+ "rev": 22,
+ "updated": "2026-11-10 16:40",
  "theme": "default",
  "announce": {
   "on": false,
@@ -359,17 +359,17 @@
     {
      "name": "بسبوسة فستق",
      "size": "كيلو",
-     "price": 270
+     "price": 300
     },
     {
      "name": "بسبوسة فستق",
      "size": "نص ك",
-     "price": 135
+     "price": 150
     },
     {
      "name": "بسبوسة فستق",
      "size": "ربع ك",
-     "price": 70
+     "price": 75
     },
     {
      "name": "بسبوسة قشطة",
