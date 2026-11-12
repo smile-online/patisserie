@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 26,
- "updated": "2026-11-12 16:27",
+ "rev": 27,
+ "updated": "2026-11-12 16:28",
  "theme": "default",
  "announce": {
   "on": false,
@@ -1091,6 +1091,21 @@
    "flavors": [],
    "replaces": "",
    "img": "uploads/e65a46d49ff0b5150ef0.jpg",
+   "added": "2026-11-12"
+  },
+  {
+   "id": "j4s7kplh77d9",
+   "sid": "products",
+   "name": "نص فاكهة ونص شيكولاتة جناش",
+   "sizes": [
+    {
+     "size": "مقاس 24",
+     "price": 375
+    }
+   ],
+   "flavors": [],
+   "replaces": "نص فاكهة ونص شيكولاتة جناش",
+   "img": "",
    "added": "2026-11-12"
   }
  ],
