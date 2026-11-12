@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 25,
- "updated": "2026-11-12 15:48",
+ "rev": 26,
+ "updated": "2026-11-12 16:27",
  "theme": "default",
  "announce": {
   "on": false,
@@ -1068,6 +1068,29 @@
    ],
    "replaces": "هاف بول دارك",
    "img": "uploads/da6e43f21c9775034a9b.jpg",
+   "added": "2026-11-12"
+  },
+  {
+   "id": "gspq5sb52zic",
+   "sid": "products-basbousa",
+   "name": "بنت السلطان",
+   "sizes": [
+    {
+     "size": "كيلو",
+     "price": 220
+    },
+    {
+     "size": "نص ك",
+     "price": 110
+    },
+    {
+     "size": "ربع ك",
+     "price": 55
+    }
+   ],
+   "flavors": [],
+   "replaces": "",
+   "img": "uploads/e65a46d49ff0b5150ef0.jpg",
    "added": "2026-11-12"
   }
  ],
