@@ -366,6 +366,18 @@ div.theme-card{ cursor:pointer; }
 .flv-chip button{ border:0; background:#fff; width:22px; height:22px; border-radius:50%; color:var(--err); font-size:11px; }
 .flv-add{ display:flex; gap:8px; } .flv-add .field{ padding:10px 14px; font-size:15px; }
 .pe-rep{ margin:0 22px; margin-top:14px; background:var(--paper); border:1.5px dashed var(--gold-soft); border-radius:12px; padding:10px 14px; font-size:14px; color:var(--teal); display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:space-between; }
+.nw-url{ display:flex; gap:8px; flex-wrap:wrap; } .nw-url .field{ flex:1; min-width:260px; }
+.nw-br{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:8px; }
+.nw-b{ border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; background:#fff; }
+.nw-b b{ color:var(--teal); } .nw-b span{ font-size:13px; color:var(--muted); } .nw-b i{ font-style:normal; font-weight:800; }
+.nw-b .ok{ color:#1e8a4f; } .nw-b .wait{ color:#a87b12; } .nw-b .no{ color:var(--err); } .nw-b.miss{ border-color:var(--err); }
+.nw-tools{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; } .nw-tools .field{ flex:1; min-width:180px; padding:10px 14px; }
+.nw-only{ display:flex; gap:6px; align-items:center; font-weight:700; font-size:14px; color:var(--teal); }
+.nw-sec{ font-weight:900; color:var(--gold); margin:16px 0 6px; font-size:14px; }
+.nw-row{ display:grid; grid-template-columns: minmax(140px,1fr) 22px minmax(180px,1.3fr) 22px; gap:8px; align-items:center; padding:5px 8px; border-radius:10px; }
+.nw-row:nth-child(even){ background:var(--ivory); } .nw-row .nm{ font-weight:700; font-size:14.5px; } .nw-row .ar{ color:var(--muted); text-align:center; }
+.nw-row .field{ padding:8px 12px; font-size:14px; } .nw-row .st{ font-weight:900; } .nw-row.ok .st{ color:#1e8a4f; } .nw-row.bad .st{ color:var(--err); } .nw-row.bad .field{ border-color:var(--err); }
+@media (max-width:700px){ .nw-row{ grid-template-columns:1fr 22px; } .nw-row .ar{ display:none; } .nw-row .field{ grid-column:1; } .nw-row .st{ grid-row:1/3; grid-column:2; } }
 .savebar.hide{ display:none; }
 @media (max-width:900px){ .deploy{ display:none; } }
 </style>
@@ -577,12 +589,13 @@ function cleanData(input, base) {
     const sc = input.showcase || {};
     out.showcase = { on: sc.on !== false, title: cleanTxt(sc.title, 30) || 'جديد سمايل', sub: cleanTxt(sc.sub, 100), items: [...new Set((sc.items || []).filter(n => all.has(n)))].slice(0, 12) }; }
   out.edits = cleanEdits(input.edits);
+  Object.assign(out, cleanRelay(input, new Set([...names, ...seen])));
   { const sm = new Map(); out.sections.forEach(s => s.items.forEach(it => sm.set(it.name, s.id))); out.extras.forEach(x => sm.set(x.name, x.sid)); out.layout = cleanLayout(input.layout, new Set(sm.keys()), n => sm.get(n)); }
   out.images = {}; Object.keys(input.images || {}).forEach(n => { const p = input.images[n]; if ((names.has(n) || seen.has(n)) && /^uploads\/[\w-]+\.(jpe?g|png|webp)$/i.test(p)) out.images[n] = p; });
   return { data: out, err };
 }
 async function commitData(d, message, force) {
-  const out = { version: 2, rev: (orig && orig.rev || 0) + 1, updated: cairoNow(), theme: d.theme || 'default', announce: d.announce || { on: false, text: '', link: '' }, cats: d.cats || [], customThemes: d.customThemes || [], hero: d.hero || [], showcase: d.showcase || null, sections: d.sections, extras: d.extras || [], off: d.off || {}, images: d.images || {}, edits: d.edits || {}, layout: d.layout || {} };
+  const out = { version: 2, rev: (orig && orig.rev || 0) + 1, updated: cairoNow(), theme: d.theme || 'default', announce: d.announce || { on: false, text: '', link: '' }, cats: d.cats || [], customThemes: d.customThemes || [], hero: d.hero || [], showcase: d.showcase || null, sections: d.sections, extras: d.extras || [], off: d.off || {}, images: d.images || {}, edits: d.edits || {}, layout: d.layout || {}, relay: d.relay || '', nawaqes: d.nawaqes || {} };
   let sha = fileSha;
   if (force) { const cur = await gh('/contents/prices.json?ref=' + encodeURIComponent(GH.branch)); if (cur.ok) { sha = cur.j.sha; out.rev = Math.max(out.rev, 1); } }
   const r = await gh('/contents/prices.json', { method: 'PUT', body: { message, content: b64enc(JSON.stringify(out, null, 1)), branch: GH.branch, ...(sha ? { sha } : {}) } });
@@ -702,6 +715,8 @@ function changes() {
     if (rh.length) out.look.push('رجوع للموقع: ' + rh.join('، '));
     if (JSON.stringify(a.groups) !== JSON.stringify(b.groups)) out.look.push('كروت مدموجة: ' + (a.groups.map(g => '«' + g.title + '» (' + g.items.length + ')').join('، ') || 'مفيش'));
     if (JSON.stringify(a.order) !== JSON.stringify(b.order)) out.look.push('ترتيب الكروت: ' + Object.keys(Object.assign({}, a.order, b.order)).filter(k => JSON.stringify(a.order[k]) !== JSON.stringify(b.order[k])).map(secTitle).join('، ')); }
+  if ((draft.relay || '') !== (orig.relay || '')) out.look.push(draft.relay ? 'ربط سكريبت جوجل (النواقص وسجل الطلبات): شغال' : 'ربط سكريبت جوجل: اتقفل');
+  { const a = draft.nawaqes || {}, b = orig.nawaqes || {}; const n = new Set([...Object.keys(a), ...Object.keys(b)]); let c = 0; n.forEach(k => { if (a[k] !== b[k]) c++; }); if (c) out.look.push('ربط أصناف النواقص: ' + c + ' تغيير'); }
   { const ne = editsDiff(); if (ne) out.look.push('تعديل مباشر على الموقع: ' + ne + ' تغيير (كلام/صور)'); }
   out.total = out.price.length + out.avail.length + out.image.length + out.added.length + out.removed.length + out.edited.length + out.look.length;
   return out;
@@ -762,6 +777,7 @@ function renderNav() {
     it('all', 'كل المنتجات', '▦', `<span class="ct">${P.length}</span>`) +
     it('soldout', 'نفذت الكمية', '⊘', soldOut ? `<span class="ct" style="background:#E0705E;color:#fff">${soldOut}</span>` : '') +
     it('front', 'واجهة الموقع', '▣') +
+    it('nawaqes', 'ربط النواقص والطلبات', '⇄', draft.relay ? '' : '<span class="ct" style="background:var(--line-2)">جديد</span>') +
     it('live', 'تعديل مباشر على الموقع', '✎', editsCount() ? `<span class="ct">${editsCount()}</span>` : '') +
     it('look', 'المظهر والمواسم', '🎨', draft.theme && draft.theme !== 'default' ? '<span class="ct" style="background:var(--gold);color:var(--deep)">' + (THEMES.find(t => t.id === draft.theme) || {}).em + '</span>' : '') +
     it('history', 'سجل الحفظ', '↺') +
@@ -788,6 +804,7 @@ function render() {
   if (route.v === 'look') return renderLook(v);
   if (route.v === 'front') return renderFront(v);
   if (route.v === 'live') return renderLive(v);
+  if (route.v === 'nawaqes') return renderNawaqes(v);
   if (route.v === 'arrange') return renderArrange(v);
   if (route.v === 'sec') {
     const s = allSecs().find(s => s.id === route.sid); if (!s) return go({ v: 'home' });
@@ -1565,6 +1582,106 @@ function mergeDialog(sid, list, done, g) {
   };
 }
 
+/* ================= ربط النواقص + سجل الطلبات (سكريبت جوجل) ================= */
+const RELAY_RE = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/;
+const nA = s => String(s == null ? '' : s).replace(/[ً-ْٰـ]/g, '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+  .replace(/[إأآا]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/ء/g, '')
+  .replace(/[\/،,\-–—_.:|()\[\]"'«»×*]/g, ' ').toLowerCase().replace(/\s+/g, ' ').trim();
+const nBranch = s => nA(s).replace(/^فرع\s*/, '').split(' ').map(w => w.replace(/^ال(?=..)/, '')).join(' ');
+const SIZE_WORDS = /\b(مقاس|حجم|كيلو|نص|ربع|ك|قطعه|دسته|صغير|كبير|وسط|ميني)\b|\b\d+\b/g;
+let relayCache = null; // { at, products, branches, fetchedAt, url }
+let siteDelivery = [];
+function cleanRelay(input, names) {
+  const relay = typeof input.relay === 'string' && RELAY_RE.test(input.relay.trim()) ? input.relay.trim() : '';
+  const nawaqes = {};
+  Object.keys(input.nawaqes || {}).slice(0, 2000).forEach(k => { const v = cleanTxt(input.nawaqes[k], 120); if (names.has(k) && v) nawaqes[k] = v; });
+  return { relay, nawaqes };
+}
+async function fetchRelay(url) {
+  const ctrl = new AbortController(), to = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const r = await fetch(url + '?a=products&t=' + Date.now(), { signal: ctrl.signal });
+    const j = await r.json();
+    if (!j || !j.ok) throw new Error((j && j.error) || 'رد غير مفهوم');
+    relayCache = { at: j.at, products: j.products || [], branches: j.branches || [], fetchedAt: Date.now(), url };
+    return relayCache;
+  } finally { clearTimeout(to); }
+}
+// اقتراح تلقائي: نفس الاسم بالظبط ← نفس الاسم من غير المقاس ← أقرب اسم بالكلمات
+function suggestFor(name, sys) {
+  const n = nA(name);
+  let hit = sys.find(s => nA(s) === n); if (hit) return hit;
+  const core = s => nA(s).replace(SIZE_WORDS, ' ').split(' ').map(w => w.replace(/^ال(?=..)/, '')).join(' ').replace(/\s+/g, ' ').trim();
+  const c = core(name);
+  if (c) { const list = sys.filter(s => core(s) === c); if (list.length === 1) return list[0]; }
+  const words = new Set(c.split(' ').filter(w => w.length > 1));
+  if (!words.size) return '';
+  let best = '', score = 0, second = 0;
+  sys.forEach(s => {
+    const w2 = new Set(core(s).split(' ').filter(w => w.length > 1)); if (!w2.size) return;
+    let inter = 0; words.forEach(w => { if (w2.has(w)) inter++; });
+    const sc = inter / Math.max(words.size, w2.size);
+    if (sc > score) { second = score; score = sc; best = s; } else if (sc > second) second = sc;
+  });
+  return score >= 0.67 && score > second ? best : '';
+}
+const agoTxt = iso => { if (!iso) return 'لسه ماوصلش أي تحديث'; const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? 'من أقل من دقيقة' : m < 60 ? `من ${m} دقيقة` : m < 1440 ? `من ${Math.round(m / 60)} ساعة` : `من ${Math.round(m / 1440)} يوم`; };
+
+function renderNawaqes(v) {
+  const url = draft.relay || '', map = draft.nawaqes || (draft.nawaqes = {});
+  if (url && (!relayCache || relayCache.url !== url) && !renderNawaqes.busy) {
+    renderNawaqes.busy = true;
+    fetchRelay(url).then(() => { if (route.v === 'nawaqes') renderNawaqes($('#view')); })
+      .catch(e => toast('مقدرناش نوصل لسكريبت جوجل: ' + (e.message || ''), 'err')).finally(() => { renderNawaqes.busy = false; });
+  }
+  const P = vis(), sys = relayCache && relayCache.url === url ? relayCache.products : null;
+  const linked = P.filter(p => map[p.name]).length;
+  const fresh = relayCache && relayCache.at && Date.now() - Date.parse(relayCache.at) < 30 * 60000;
+  const sysSet = new Set((sys || []).map(nA));
+  const bad = sys ? P.filter(p => map[p.name] && !sysSet.has(nA(map[p.name]))) : [];
+  const bRows = siteDelivery.map(sb => { const m = relayCache ? relayCache.branches.find(b => nBranch(b.name) === nBranch(sb)) : null; return { site: sb, m }; });
+  v.innerHTML = `<div class="page-h"><div><h1>ربط النواقص وسجل الطلبات</h1><p>الموقع بيقرأ النواقص من برنامج النواقص وقت الطلب: لو صنف ناقص في أقرب فرع للعميل، العميل لازم يشيله قبل ما يبعت. وكل طلب بيتسجل في شيت جوجل.</p></div></div>
+    <section class="panel"><h2>1. رابط سكريبت جوجل <small>نفس الرابط اللي في .env بتاع برنامج النواقص (WEB_SYNC_URL)</small></h2>
+      <div class="nw-url"><input class="field" id="nwUrl" dir="ltr" placeholder="https://script.google.com/macros/s/.../exec" value="${esc(url)}"><button class="btn gold" id="nwTest">حفظ واختبار</button>${url ? '<button class="btn ghost sm" id="nwOff">إيقاف الربط</button>' : ''}</div>
+      <p class="hint">${url ? (relayCache && relayCache.url === url ? `✓ متصل — آخر تحديث للنواقص وصل <b>${agoTxt(relayCache.at)}</b>${relayCache.at && !fresh ? ' <span style="color:var(--err)">(قديم — اتأكد إن برنامج النواقص شغال وعليه نت. لحد ما يتحدّث الموقع مش هيمنع أي صنف)</span>' : ''} · ${relayCache.products.length} صنف في برنامج النواقص` : 'دوس «حفظ واختبار» عشان نتأكد إن الرابط شغال') : 'لما تحط الرابط وتحفظ، الموقع هيبدأ يسجّل الطلبات في الشيت ويتأكد من النواقص.'}</p>
+    </section>
+    ${url && relayCache && relayCache.url === url ? `<section class="panel"><h2>2. فروع التوصيل <small>الموقع بيدوّر على أقرب فرع للعميل بالاسم في برنامج النواقص</small></h2>
+      <div class="nw-br">${bRows.map(r => `<div class="nw-b ${r.m ? '' : 'miss'}"><b>${esc(r.site.replace(/^فرع\s*/, ''))}</b><span>${r.m ? (r.m.today ? `<i class="ok">رفع التوافر النهارده</i> · ${r.m.offCount} صنف ناقص` : '<i class="wait">لسه ما رفعش التوافر النهارده — مش هيتمنع حاجة</i>') : '<i class="no">مش لاقيين الفرع ده في برنامج النواقص</i>'}</span></div>`).join('')}</div>
+      ${bRows.some(r => !r.m) ? '<p class="hint" style="color:var(--err)">الفرع اللي مش متلاقي: اسمه في برنامج النواقص مختلف. ابعتلي اسمه هناك أو عدّله عشان يتطابق.</p>' : ''}
+    </section>
+    <section class="panel"><h2>3. ربط الأصناف <small id="nwCount">${linked} من ${P.length} صنف مربوط — الصنف اللي مش مربوط عمره ما بيتمنع</small></h2>
+      <div class="nw-tools"><button class="btn gold" id="nwAuto">⚡ اربط تلقائي بالأسماء القريبة</button><input class="field" id="nwQ" placeholder="دوّر على صنف..."><label class="nw-only"><input type="checkbox" id="nwOnly"> اللي مش مربوط بس</label></div>
+      ${bad.length ? `<p class="hint" style="color:var(--err)">⚠ ${bad.length} صنف مربوط باسم مبقاش موجود في برنامج النواقص — اختار له الاسم الصح.</p>` : ''}
+      <datalist id="nwSys">${sys.map(s => `<option value="${esc(s)}">`).join('')}</datalist>
+      <div class="nw-list" id="nwList">${allSecs().map(s => { const items = P.filter(p => p.sid === s.id); if (!items.length) return ''; return `<div class="nw-sec">${esc(shortTitle(s.title))}</div>` + items.map(p => { const m = map[p.name] || '', ok = m && sysSet.has(nA(m)); return `<div class="nw-row ${m ? (ok ? 'ok' : 'bad') : ''}" data-n="${esc(p.name)}"><span class="nm">${esc(p.name)}</span><span class="ar">⇄</span><input class="field" list="nwSys" value="${esc(m)}" placeholder="اختار الصنف من برنامج النواقص..."><span class="st">${m ? (ok ? '✓' : '⚠') : ''}</span></div>`; }).join(''); }).join('')}</div>
+    </section>` : ''}`;
+  $('#nwTest', v).onclick = async () => {
+    const u = $('#nwUrl', v).value.trim();
+    if (!RELAY_RE.test(u)) return toast('الرابط لازم يبدأ بـ https://script.google.com/macros/s/ وينتهي بـ /exec', 'err');
+    const b = $('#nwTest', v); b.disabled = true; b.textContent = 'بنختبر...';
+    try { await fetchRelay(u); draft.relay = u; refresh(false); renderNawaqes(v); toast('الرابط شغال ✓' + (draft.relay !== (orig.relay || '') ? ' — احفظ عشان الموقع يستخدمه' : ''), 'ok'); }
+    catch (e) { b.disabled = false; b.textContent = 'حفظ واختبار'; toast('مقدرناش نوصل للسكريبت: ' + (e.message || '') + ' — اتأكد إنه منشور بـ Anyone', 'err'); }
+  };
+  const off = $('#nwOff', v); if (off) off.onclick = async () => { if (!await confirmBox('إيقاف الربط', 'الموقع هيبطّل يسجّل الطلبات في الشيت ويبطّل يتأكد من النواقص (بعد الحفظ). ربط الأصناف هيفضل محفوظ.', 'إيقاف', true)) return; draft.relay = ''; refresh(false); renderNawaqes(v); };
+  if (!sys) return;
+  const list = $('#nwList', v);
+  const filt = () => { const q = nA($('#nwQ', v).value), only = $('#nwOnly', v).checked; $$('.nw-row', list).forEach(r => { const show = (!q || nA(r.dataset.n).includes(q)) && (!only || !map[r.dataset.n]); r.style.display = show ? '' : 'none'; }); };
+  $('#nwQ', v).oninput = filt; $('#nwOnly', v).onchange = filt;
+  $$('.nw-row input', list).forEach(inp => inp.onchange = () => {
+    const row = inp.closest('.nw-row'), n = row.dataset.n, val = inp.value.trim();
+    const real = sys.find(s => nA(s) === nA(val));
+    if (val && !real) { toast('الاسم ده مش موجود في برنامج النواقص — اختاره من القايمة', 'err'); inp.value = map[n] || ''; return; }
+    if (real) map[n] = real; else delete map[n];
+    inp.value = map[n] || '';
+    row.className = 'nw-row ' + (map[n] ? 'ok' : ''); $('.st', row).textContent = map[n] ? '✓' : '';
+    refresh(false); $('#nwCount').textContent = `${P.filter(p => map[p.name]).length} من ${P.length} صنف مربوط — الصنف اللي مش مربوط عمره ما بيتمنع`;
+  });
+  $('#nwAuto', v).onclick = () => {
+    let n = 0; P.forEach(p => { if (map[p.name] && sysSet.has(nA(map[p.name]))) return; const s = suggestFor(p.name, sys); if (s) { map[p.name] = s; n++; } });
+    refresh(false); renderNawaqes(v); toast(n ? `اتربط ${n} صنف — راجعهم واحفظ` : 'مفيش أسماء قريبة تانية — اربط الباقي بإيدك', n ? 'ok' : '');
+  };
+}
+
 /* ================= live edit: اضغط على أي حاجة في الموقع وغيّرها ================= */
 const EK = ['t', 'ph', 'href', 'img', 'hide'];
 const emptyEdits = () => ({ t: {}, ph: {}, href: {}, img: {}, hide: {} });
@@ -1834,6 +1951,8 @@ function liveList() {
 }
 
 function normalize(d) {
+  if (typeof d.relay !== 'string') d.relay = '';
+  if (!d.nawaqes || typeof d.nawaqes !== 'object' || Array.isArray(d.nawaqes)) d.nawaqes = {};
   d.layout = d.layout && typeof d.layout === 'object' && !Array.isArray(d.layout) ? d.layout : {};
   d.layout = Object.assign(emptyLayout(), d.layout); if (!Array.isArray(d.layout.groups)) d.layout.groups = []; if (!d.layout.order || typeof d.layout.order !== 'object') d.layout.order = {}; if (!d.layout.hidden || typeof d.layout.hidden !== 'object') d.layout.hidden = {};
   d.edits = d.edits && typeof d.edits === 'object' && !Array.isArray(d.edits) ? d.edits : {};
@@ -1854,7 +1973,9 @@ async function loadSiteImages() {
     let r = null;
     if (location.protocol !== 'file:') { try { r = await fetch('index.html?t=' + Date.now(), { credentials: 'same-origin' }); } catch (e) {} }
     if (!r || !r.ok) r = await fetch(rawUrl('index.html') + '?t=' + Date.now());
-    const doc = siteDoc = new DOMParser().parseFromString(await r.text(), 'text/html');
+    const html = await r.text();
+    { const m = /DELIVERY_BRANCHES\s*=\s*\[([\s\S]*?)\];/.exec(html); siteDelivery = m ? [...m[1].matchAll(/name:\s*'([^']+)'/g)].map(x => x[1]) : []; }
+    const doc = siteDoc = new DOMParser().parseFromString(html, 'text/html');
     doc.querySelectorAll('.product-card').forEach(c => {
       const h = c.querySelector('h4'); if (!h) return;
       const n = h.textContent.trim(), im = c.querySelector('.photo-wrap img');
