@@ -373,7 +373,11 @@ div.theme-card{ cursor:pointer; }
 .nw-b .ok{ color:#1e8a4f; } .nw-b .wait{ color:#a87b12; } .nw-b .no{ color:var(--err); } .nw-b.miss{ border-color:var(--err); }
 .nw-tools{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; } .nw-tools .field{ flex:1; min-width:180px; padding:10px 14px; }
 .nw-only{ display:flex; gap:6px; align-items:center; font-weight:700; font-size:14px; color:var(--teal); }
-.nw-sec{ font-weight:900; color:var(--gold); margin:16px 0 6px; font-size:14px; }
+.nw-sec{ font-weight:900; color:var(--gold); margin:16px 0 6px; font-size:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+.nw-sec.skip span{ color:var(--muted); text-decoration:line-through; }
+.nw-skip{ display:flex; gap:6px; align-items:center; font-size:12.5px; font-weight:700; color:var(--muted); cursor:pointer; }
+.nw-row.sub{ margin-inline-start:22px; } .nw-row[hidden]{ display:none !important; }
+.nw-more{ border:0; background:none; color:var(--gold-2); font-weight:800; font-size:12px; cursor:pointer; padding:0 4px; } .nw-row.sub .nm{ font-weight:600; font-size:13.5px; color:var(--muted); }
 .nw-row{ display:grid; grid-template-columns: minmax(140px,1fr) 22px minmax(180px,1.3fr) 22px; gap:8px; align-items:center; padding:5px 8px; border-radius:10px; }
 .nw-row:nth-child(even){ background:var(--ivory); } .nw-row .nm{ font-weight:700; font-size:14.5px; } .nw-row .ar{ color:var(--muted); text-align:center; }
 .nw-row .field{ padding:8px 12px; font-size:14px; } .nw-row .st{ font-weight:900; } .nw-row.ok .st{ color:#1e8a4f; } .nw-row.bad .st{ color:var(--err); } .nw-row.bad .field{ border-color:var(--err); }
@@ -590,12 +594,13 @@ function cleanData(input, base) {
     out.showcase = { on: sc.on !== false, title: cleanTxt(sc.title, 30) || 'جديد سمايل', sub: cleanTxt(sc.sub, 100), items: [...new Set((sc.items || []).filter(n => all.has(n)))].slice(0, 12) }; }
   out.edits = cleanEdits(input.edits);
   Object.assign(out, cleanRelay(input, new Set([...names, ...seen])));
+  out.nawaqesSkip = {}; Object.keys(input.nawaqesSkip || {}).forEach(k => { if (sids.includes(k) && input.nawaqesSkip[k] === true) out.nawaqesSkip[k] = true; });
   { const sm = new Map(); out.sections.forEach(s => s.items.forEach(it => sm.set(it.name, s.id))); out.extras.forEach(x => sm.set(x.name, x.sid)); out.layout = cleanLayout(input.layout, new Set(sm.keys()), n => sm.get(n)); }
   out.images = {}; Object.keys(input.images || {}).forEach(n => { const p = input.images[n]; if ((names.has(n) || seen.has(n)) && /^uploads\/[\w-]+\.(jpe?g|png|webp)$/i.test(p)) out.images[n] = p; });
   return { data: out, err };
 }
 async function commitData(d, message, force) {
-  const out = { version: 2, rev: (orig && orig.rev || 0) + 1, updated: cairoNow(), theme: d.theme || 'default', announce: d.announce || { on: false, text: '', link: '' }, cats: d.cats || [], customThemes: d.customThemes || [], hero: d.hero || [], showcase: d.showcase || null, sections: d.sections, extras: d.extras || [], off: d.off || {}, images: d.images || {}, edits: d.edits || {}, layout: d.layout || {}, relay: d.relay || '', nawaqes: d.nawaqes || {} };
+  const out = { version: 2, rev: (orig && orig.rev || 0) + 1, updated: cairoNow(), theme: d.theme || 'default', announce: d.announce || { on: false, text: '', link: '' }, cats: d.cats || [], customThemes: d.customThemes || [], hero: d.hero || [], showcase: d.showcase || null, sections: d.sections, extras: d.extras || [], off: d.off || {}, images: d.images || {}, edits: d.edits || {}, layout: d.layout || {}, relay: d.relay || '', nawaqes: d.nawaqes || {}, nawaqesSkip: d.nawaqesSkip || {} };
   let sha = fileSha;
   if (force) { const cur = await gh('/contents/prices.json?ref=' + encodeURIComponent(GH.branch)); if (cur.ok) { sha = cur.j.sha; out.rev = Math.max(out.rev, 1); } }
   const r = await gh('/contents/prices.json', { method: 'PUT', body: { message, content: b64enc(JSON.stringify(out, null, 1)), branch: GH.branch, ...(sha ? { sha } : {}) } });
@@ -717,6 +722,7 @@ function changes() {
     if (JSON.stringify(a.order) !== JSON.stringify(b.order)) out.look.push('ترتيب الكروت: ' + Object.keys(Object.assign({}, a.order, b.order)).filter(k => JSON.stringify(a.order[k]) !== JSON.stringify(b.order[k])).map(secTitle).join('، ')); }
   if ((draft.relay || '') !== (orig.relay || '')) out.look.push(draft.relay ? 'ربط سكريبت جوجل (النواقص وسجل الطلبات): شغال' : 'ربط سكريبت جوجل: اتقفل');
   { const a = draft.nawaqes || {}, b = orig.nawaqes || {}; const n = new Set([...Object.keys(a), ...Object.keys(b)]); let c = 0; n.forEach(k => { if (a[k] !== b[k]) c++; }); if (c) out.look.push('ربط أصناف النواقص: ' + c + ' تغيير'); }
+  { const a = draft.nawaqesSkip || {}, b = orig.nawaqesSkip || { 'products-torte-preorder': true }; const n = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(k => !!a[k] !== !!b[k]); if (n.length) out.look.push('أقسام مش تبع النواقص: ' + n.map(k => secTitle(k) + (a[k] ? ' (اتضاف)' : ' (اتشال)')).join('، ')); }
   { const ne = editsDiff(); if (ne) out.look.push('تعديل مباشر على الموقع: ' + ne + ' تغيير (كلام/صور)'); }
   out.total = out.price.length + out.avail.length + out.image.length + out.added.length + out.removed.length + out.edited.length + out.look.length;
   return out;
@@ -777,7 +783,7 @@ function renderNav() {
     it('all', 'كل المنتجات', '▦', `<span class="ct">${P.length}</span>`) +
     it('soldout', 'نفذت الكمية', '⊘', soldOut ? `<span class="ct" style="background:#E0705E;color:#fff">${soldOut}</span>` : '') +
     it('front', 'واجهة الموقع', '▣') +
-    it('nawaqes', 'ربط النواقص والطلبات', '⇄', draft.relay ? '' : '<span class="ct" style="background:var(--line-2)">جديد</span>') +
+    it('nawaqes', 'ربط النواقص والطلبات', '⇄', !draft.relay ? '<span class="ct" style="background:var(--line-2)">جديد</span>' : (() => { const n = nwUnmapped(); return n ? `<span class="ct" style="background:#E0A23C;color:#fff" title="أصناف لسه مش مربوطة">${n}</span>` : ''; })()) +
     it('live', 'تعديل مباشر على الموقع', '✎', editsCount() ? `<span class="ct">${editsCount()}</span>` : '') +
     it('look', 'المظهر والمواسم', '🎨', draft.theme && draft.theme !== 'default' ? '<span class="ct" style="background:var(--gold);color:var(--deep)">' + (THEMES.find(t => t.id === draft.theme) || {}).em + '</span>' : '') +
     it('history', 'سجل الحفظ', '↺') +
@@ -1454,6 +1460,7 @@ function fixLayout() { // بعد أي حذف أو نقل: نشيل الحاجا�
 }
 function renameInLayout(a, b) {
   const L = draft.layout; if (!L || a === b) return;
+  if (draft.nawaqes) Object.keys(draft.nawaqes).forEach(k => { if (nwBase(k) === a) { draft.nawaqes[b + k.slice(a.length)] = draft.nawaqes[k]; delete draft.nawaqes[k]; } });
   if (L.hidden[a]) { L.hidden[b] = true; delete L.hidden[a]; }
   L.groups.forEach(g => { g.items = g.items.map(n => n === a ? b : n); if (g.img === a) g.img = b; });
   Object.keys(L.order).forEach(s => { L.order[s] = L.order[s].map(k => k === a ? b : k); });
@@ -1594,7 +1601,7 @@ let siteDelivery = [];
 function cleanRelay(input, names) {
   const relay = typeof input.relay === 'string' && RELAY_RE.test(input.relay.trim()) ? input.relay.trim() : '';
   const nawaqes = {};
-  Object.keys(input.nawaqes || {}).slice(0, 2000).forEach(k => { const v = cleanTxt(input.nawaqes[k], 120); if (names.has(k) && v) nawaqes[k] = v; });
+  Object.keys(input.nawaqes || {}).slice(0, 4000).forEach(k => { const v = cleanTxt(input.nawaqes[k], 120); if (names.has(nwBase(k)) && v && k.length <= 220) nawaqes[k] = v; });
   return { relay, nawaqes };
 }
 async function fetchRelay(url) {
@@ -1627,6 +1634,47 @@ function suggestFor(name, sys) {
 }
 const agoTxt = iso => { if (!iso) return 'لسه ماوصلش أي تحديث'; const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? 'من أقل من دقيقة' : m < 60 ? `من ${m} دقيقة` : m < 1440 ? `من ${Math.round(m / 60)} ساعة` : `من ${Math.round(m / 1440)} يوم`; };
 
+// مفاتيح الربط: «الاسم» للمنتج كله، «الاسم|s:المقاس» و«الاسم|f:النكهة» و«الاسم|s:المقاس|f:النكهة» للتفصيل
+const nwBase = k => { const i = String(k).search(/\|[sf]:/); return i < 0 ? String(k) : String(k).slice(0, i); };
+const nwFlv = p => (p.extra ? ((draft.extras[p.xi] || {}).flavors || []) : (siteFlv[p.name] || [])).filter(Boolean);
+const nwSizes = p => [...new Set(p.sizes.map(z => z.size).filter(Boolean))];
+const nwSkip = sid => !!(draft.nawaqesSkip || {})[sid];
+function nwSubs(p) { // الصفوف الفرعية للمنتج
+  const sz = nwSizes(p), fl = nwFlv(p), out = [];
+  if (sz.length > 1) sz.forEach(z => out.push({ k: p.name + '|s:' + z, lb: z, dim: 's', z }));
+  fl.forEach(f => out.push({ k: p.name + '|f:' + f, lb: 'نكهة ' + f, dim: 'f', f }));
+  if (sz.length > 1 && fl.length) sz.forEach(z => fl.forEach(f => out.push({ k: p.name + '|s:' + z + '|f:' + f, lb: z + ' · ' + f, dim: 'sf', z, f })));
+  return out;
+}
+function nwCovered(p, map = draft.nawaqes || {}) { // المنتج مربوط لو المنتج كله مربوط، أو كل النكهات، أو كل المقاسات
+  if (map[p.name]) return true;
+  const subs = nwSubs(p); if (!subs.length) return false;
+  const all = d => { const r = subs.filter(x => x.dim === d); return r.length && r.every(x => map[x.k]); };
+  return all('f') || all('s') || all('sf');
+}
+function nwUnmapped() { if (!draft || !draft.relay) return 0; return vis().filter(p => !nwSkip(p.sid) && !nwCovered(p)).length; }
+// لو المنتج كله متربط بصنف نكهة/مقاس واحد (زي دونتس ← دونتس لوتس) أو كل النكهات/المقاسات اتربطت: ربط المنتج كله بيتشال
+function nwDropMain(p, map) {
+  if (!map[p.name]) return false;
+  const subs = nwSubs(p), vals = new Set(subs.map(x => map[x.k]).filter(Boolean).map(nA));
+  const full = d => { const r = subs.filter(x => x.dim === d); return r.length && r.every(x => map[x.k]); };
+  // ربط المنتج كله بنفس صنف نكهة أو مقاس معيّن = غلط (كان هيمنع باقي النكهات/المقاسات لما الصنف ده يخلص)
+  if (vals.has(nA(map[p.name])) || full('f') || full('s')) { delete map[p.name]; return true; }
+  return false;
+}
+function nwSuggestSub(p, x, sys) {
+  const digits = t => String(t).replace(/[^\d٠-٩]/g, '');
+  const tries = [];
+  if (x.z) { tries.push(p.name + ' ' + x.z); const d = digits(x.z); if (d) tries.push(p.name + ' ' + d); }
+  if (x.f) { tries.push(p.name + ' ' + x.f); tries.push(x.f + ' ' + p.name); }
+  if (x.z && x.f) { const d = digits(x.z) || x.z; tries.unshift(p.name + ' ' + x.f + ' ' + d, p.name + ' ' + d + ' ' + x.f); }
+  for (const t of tries) { const hit = sys.find(s => nA(s) === nA(t)); if (hit) return hit; }
+  if (x.dim === 'f') { // النكهات: بالكلمات القريبة، بشرط إن اسم النكهة يكون موجود
+    const s = suggestFor(p.name + ' ' + x.f, sys); if (s && nA(s).includes(nA(x.f))) return s;
+  }
+  return '';
+}
+
 function renderNawaqes(v) {
   const url = draft.relay || '', map = draft.nawaqes || (draft.nawaqes = {});
   if (url && (!relayCache || relayCache.url !== url) && !renderNawaqes.busy) {
@@ -1635,10 +1683,13 @@ function renderNawaqes(v) {
       .catch(e => toast('مقدرناش نوصل لسكريبت جوجل: ' + (e.message || ''), 'err')).finally(() => { renderNawaqes.busy = false; });
   }
   const P = vis(), sys = relayCache && relayCache.url === url ? relayCache.products : null;
-  const linked = P.filter(p => map[p.name]).length;
+  const skip = draft.nawaqesSkip || (draft.nawaqesSkip = { 'products-torte-preorder': true });
+  const PM = P.filter(p => !nwSkip(p.sid));
+  const linked = PM.filter(p => nwCovered(p, map)).length;
+  const cntTxt = () => `${PM.filter(p => nwCovered(p, map)).length} من ${PM.length} صنف مربوط — الصنف اللي مش مربوط عمره ما بيتمنع`;
   const fresh = relayCache && relayCache.at && Date.now() - Date.parse(relayCache.at) < 30 * 60000;
   const sysSet = new Set((sys || []).map(nA));
-  const bad = sys ? P.filter(p => map[p.name] && !sysSet.has(nA(map[p.name]))) : [];
+  const bad = sys ? Object.keys(map).filter(k => P.some(p => p.name === nwBase(k)) && !sysSet.has(nA(map[k]))) : [];
   const bRows = siteDelivery.map(sb => { const m = relayCache ? relayCache.branches.find(b => nBranch(b.name) === nBranch(sb)) : null; return { site: sb, m }; });
   v.innerHTML = `<div class="page-h"><div><h1>ربط النواقص وسجل الطلبات</h1><p>الموقع بيقرأ النواقص من برنامج النواقص وقت الطلب: لو صنف ناقص في أقرب فرع للعميل، العميل لازم يشيله قبل ما يبعت. وكل طلب بيتسجل في شيت جوجل.</p></div></div>
     <section class="panel"><h2>1. رابط سكريبت جوجل <small>نفس الرابط اللي في .env بتاع برنامج النواقص (WEB_SYNC_URL)</small></h2>
@@ -1649,11 +1700,18 @@ function renderNawaqes(v) {
       <div class="nw-br">${bRows.map(r => `<div class="nw-b ${r.m ? '' : 'miss'}"><b>${esc(r.site.replace(/^فرع\s*/, ''))}</b><span>${r.m ? (r.m.today ? `<i class="ok">رفع التوافر النهارده</i> · ${r.m.offCount} صنف ناقص` : '<i class="wait">لسه ما رفعش التوافر النهارده — مش هيتمنع حاجة</i>') : '<i class="no">مش لاقيين الفرع ده في برنامج النواقص</i>'}</span></div>`).join('')}</div>
       ${bRows.some(r => !r.m) ? '<p class="hint" style="color:var(--err)">الفرع اللي مش متلاقي: اسمه في برنامج النواقص مختلف. ابعتلي اسمه هناك أو عدّله عشان يتطابق.</p>' : ''}
     </section>
-    <section class="panel"><h2>3. ربط الأصناف <small id="nwCount">${linked} من ${P.length} صنف مربوط — الصنف اللي مش مربوط عمره ما بيتمنع</small></h2>
+    <section class="panel"><h2>3. ربط الأصناف <small id="nwCount">${cntTxt()}</small></h2>
       <div class="nw-tools"><button class="btn gold" id="nwAuto">⚡ اربط تلقائي بالأسماء القريبة</button><input class="field" id="nwQ" placeholder="دوّر على صنف..."><label class="nw-only"><input type="checkbox" id="nwOnly"> اللي مش مربوط بس</label></div>
       ${bad.length ? `<p class="hint" style="color:var(--err)">⚠ ${bad.length} صنف مربوط باسم مبقاش موجود في برنامج النواقص — اختار له الاسم الصح.</p>` : ''}
       <datalist id="nwSys">${sys.map(s => `<option value="${esc(s)}">`).join('')}</datalist>
-      <div class="nw-list" id="nwList">${allSecs().map(s => { const items = P.filter(p => p.sid === s.id); if (!items.length) return ''; return `<div class="nw-sec">${esc(shortTitle(s.title))}</div>` + items.map(p => { const m = map[p.name] || '', ok = m && sysSet.has(nA(m)); return `<div class="nw-row ${m ? (ok ? 'ok' : 'bad') : ''}" data-n="${esc(p.name)}"><span class="nm">${esc(p.name)}</span><span class="ar">⇄</span><input class="field" list="nwSys" value="${esc(m)}" placeholder="اختار الصنف من برنامج النواقص..."><span class="st">${m ? (ok ? '✓' : '⚠') : ''}</span></div>`; }).join(''); }).join('')}</div>
+      <p class="hint">المنتج اللي ليه نكهات أو أكتر من مقاس بيبان تحته صف لكل نكهة/مقاس — اربط كل واحدة بالصنف بتاعها في برنامج النواقص. الترتيب: المقاس والنكهة ← النكهة ← المقاس ← المنتج كله. أي نكهة أو مقاس تضيفه بعدين من ✎ هيظهر هنا لوحده.</p>
+      <div class="nw-list" id="nwList">${allSecs().map(s => { const items = P.filter(p => p.sid === s.id); if (!items.length) return ''; const sk = nwSkip(s.id);
+        return `<div class="nw-sec ${sk ? 'skip' : ''}"><span>${esc(shortTitle(s.title))}</span><label class="nw-skip"><input type="checkbox" data-skip="${esc(s.id)}" ${sk ? 'checked' : ''}> مش تبع النواقص (حجز مسبق — عمره ما يتمنع)</label></div>` + (sk ? '' : items.map(p => {
+          const row = (k, lb, sub, more, hid) => { const m = map[k] || '', ok = m && sysSet.has(nA(m)); return `<div class="nw-row ${sub ? 'sub' : ''} ${m ? (ok ? 'ok' : 'bad') : ''}" data-n="${esc(p.name)}" data-k="${esc(k)}" ${hid ? 'data-hid hidden' : ''}><span class="nm">${sub ? '↳ ' : ''}${esc(lb)}${more ? ` <button class="nw-more" type="button" data-more="${esc(p.name)}">+ ربط كل مقاس لوحده (${more})</button>` : ''}</span><span class="ar">⇄</span><input class="field" list="nwSys" value="${esc(m)}" placeholder="${sub ? 'لو فاضي بياخد ربط المنتج كله' : 'اختار الصنف من برنامج النواقص...'}"><span class="st">${m ? (ok ? '✓' : '⚠') : ''}</span></div>`; };
+          const subs = nwSubs(p), szSubs = subs.filter(x => x.dim !== 'f');
+          const openSz = !szSubs.length || !map[p.name] || szSubs.some(x => map[x.k]);
+          return row(p.name, p.name, false, szSubs.length && !openSz ? szSubs.length : 0) + subs.map(x => row(x.k, x.lb, true, 0, x.dim !== 'f' && !openSz)).join('');
+        }).join('')); }).join('')}</div>
     </section>` : ''}`;
   $('#nwTest', v).onclick = async () => {
     const u = $('#nwUrl', v).value.trim();
@@ -1665,20 +1723,32 @@ function renderNawaqes(v) {
   const off = $('#nwOff', v); if (off) off.onclick = async () => { if (!await confirmBox('إيقاف الربط', 'الموقع هيبطّل يسجّل الطلبات في الشيت ويبطّل يتأكد من النواقص (بعد الحفظ). ربط الأصناف هيفضل محفوظ.', 'إيقاف', true)) return; draft.relay = ''; refresh(false); renderNawaqes(v); };
   if (!sys) return;
   const list = $('#nwList', v);
-  const filt = () => { const q = nA($('#nwQ', v).value), only = $('#nwOnly', v).checked; $$('.nw-row', list).forEach(r => { const show = (!q || nA(r.dataset.n).includes(q)) && (!only || !map[r.dataset.n]); r.style.display = show ? '' : 'none'; }); };
+  const byName = new Map(P.map(p => [p.name, p]));
+  const filt = () => { const q = nA($('#nwQ', v).value), only = $('#nwOnly', v).checked; $$('.nw-row', list).forEach(r => { const p = byName.get(r.dataset.n); const show = (!q || nA(r.dataset.n).includes(q) || nA(r.dataset.k).includes(q)) && (!only || !nwCovered(p, map)); r.style.display = show ? '' : 'none'; }); };
+  $$('[data-more]', list).forEach(bt => bt.onclick = () => { $$('.nw-row[data-hid]', list).forEach(r => { if (r.dataset.n === bt.dataset.more) { r.hidden = false; r.removeAttribute('data-hid'); } }); bt.remove(); });
+  $$('[data-skip]', list).forEach(cb => cb.onchange = () => { if (cb.checked) skip[cb.dataset.skip] = true; else delete skip[cb.dataset.skip]; refresh(false); renderNawaqes(v); });
   $('#nwQ', v).oninput = filt; $('#nwOnly', v).onchange = filt;
   $$('.nw-row input', list).forEach(inp => inp.onchange = () => {
-    const row = inp.closest('.nw-row'), n = row.dataset.n, val = inp.value.trim();
+    const row = inp.closest('.nw-row'), n = row.dataset.k, val = inp.value.trim(), sub = n !== row.dataset.n;
     const real = sys.find(s => nA(s) === nA(val));
     if (val && !real) { toast('الاسم ده مش موجود في برنامج النواقص — اختاره من القايمة', 'err'); inp.value = map[n] || ''; return; }
     if (real) map[n] = real; else delete map[n];
     inp.value = map[n] || '';
-    row.className = 'nw-row ' + (map[n] ? 'ok' : ''); $('.st', row).textContent = map[n] ? '✓' : '';
-    refresh(false); $('#nwCount').textContent = `${P.filter(p => map[p.name]).length} من ${P.length} صنف مربوط — الصنف اللي مش مربوط عمره ما بيتمنع`;
+    row.className = 'nw-row ' + (sub ? 'sub ' : '') + (map[n] ? 'ok' : ''); $('.st', row).textContent = map[n] ? '✓' : '';
+    const p = byName.get(row.dataset.n);
+    if (sub && p && nwDropMain(p, map)) { const mr = list.querySelector(`.nw-row[data-k="${CSS.escape(p.name)}"]`); if (mr) { $('input', mr).value = ''; mr.className = 'nw-row'; $('.st', mr).textContent = ''; } toast('كل النكهات/المقاسات اتربطت — شلنا ربط «' + p.name + '» كله عشان كان متربط بواحدة منهم', 'ok'); }
+    refresh(false); $('#nwCount').textContent = cntTxt();
   });
   $('#nwAuto', v).onclick = () => {
-    let n = 0; P.forEach(p => { if (map[p.name] && sysSet.has(nA(map[p.name]))) return; const s = suggestFor(p.name, sys); if (s) { map[p.name] = s; n++; } });
-    refresh(false); renderNawaqes(v); toast(n ? `اتربط ${n} صنف — راجعهم واحفظ` : 'مفيش أسماء قريبة تانية — اربط الباقي بإيدك', n ? 'ok' : '');
+    let n = 0, dropped = 0;
+    PM.forEach(p => {
+      nwSubs(p).forEach(x => { if (map[x.k] && sysSet.has(nA(map[x.k]))) return; const s = nwSuggestSub(p, x, sys); if (s) { map[x.k] = s; n++; } });
+      if (nwDropMain(p, map)) { dropped++; return; }
+      if (map[p.name] && sysSet.has(nA(map[p.name]))) return;
+      if (nwCovered(p, map)) return;
+      const s = suggestFor(p.name, sys); if (s) { map[p.name] = s; n++; }
+    });
+    refresh(false); renderNawaqes(v); toast(n || dropped ? `اتربط ${n} صف${dropped ? ` واتشال ربط «المنتج كله» من ${dropped} منتج كان متربط بنكهة أو مقاس واحد` : ''} — راجعهم واحفظ` : 'مفيش أسماء قريبة تانية — اربط الباقي بإيدك', n || dropped ? 'ok' : '');
   };
 }
 
@@ -1953,6 +2023,7 @@ function liveList() {
 function normalize(d) {
   if (typeof d.relay !== 'string') d.relay = '';
   if (!d.nawaqes || typeof d.nawaqes !== 'object' || Array.isArray(d.nawaqes)) d.nawaqes = {};
+  if (!d.nawaqesSkip || typeof d.nawaqesSkip !== 'object' || Array.isArray(d.nawaqesSkip)) d.nawaqesSkip = { 'products-torte-preorder': true };
   d.layout = d.layout && typeof d.layout === 'object' && !Array.isArray(d.layout) ? d.layout : {};
   d.layout = Object.assign(emptyLayout(), d.layout); if (!Array.isArray(d.layout.groups)) d.layout.groups = []; if (!d.layout.order || typeof d.layout.order !== 'object') d.layout.order = {}; if (!d.layout.hidden || typeof d.layout.hidden !== 'object') d.layout.hidden = {};
   d.edits = d.edits && typeof d.edits === 'object' && !Array.isArray(d.edits) ? d.edits : {};

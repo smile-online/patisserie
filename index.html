@@ -647,6 +647,16 @@
   .stepper button{ border:none; background:transparent; width: 32px; height: 34px; font-size: 18px; font-weight:800; color: var(--teal-deep); cursor:pointer; font-family:'Tajawal'; }
   .stepper span{ font-weight:800; color: var(--teal-deep); min-width: 20px; text-align:center; }
   .menu-row{ align-items:center; }
+  .loc-tip{ font-weight:600; font-size:12px; color:#5b7370; margin-inline-start:6px; }
+  .city-combo{ position:relative; }
+  .city-combo input{ width:100%; padding-inline-end:34px; }
+  .city-combo .cc-arrow{ position:absolute; inset-inline-end:12px; top:50%; transform:translateY(-50%); color:#5b7370; cursor:pointer; font-size:14px; padding:4px; }
+  .cc-list{ position:absolute; z-index:30; inset-inline:0; top:calc(100% + 4px); max-height:240px; overflow:auto; background:#fff; border:1.5px solid #e3d9c2; border-radius:12px; box-shadow:0 14px 30px -12px rgba(0,40,46,.35); padding:4px; }
+  .cc-opt{ padding:9px 12px; border-radius:8px; cursor:pointer; font-size:15px; color:#00404A; }
+  .cc-opt small{ color:#8a9a97; font-size:12px; margin-inline-start:6px; }
+  .cc-opt.act, .cc-opt:hover{ background:#f6efdf; }
+  .cc-opt.sel{ font-weight:800; }
+  .cc-none{ padding:10px 12px; font-size:13px; color:#8a6d3b; }
   .cart-item.blocked{ border-color:#d9534f !important; background:#fdecea !important; box-shadow:0 0 0 2px rgba(217,83,79,.18); }
   .cart-item-off{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:13px; font-weight:800; color:#a33a2c; margin-bottom:8px; line-height:1.6; }
   .cart-item-off button{ border:0; background:#a33a2c; color:#fff; font-weight:800; font-size:13px; padding:5px 12px; border-radius:999px; cursor:pointer; font-family:inherit; }
@@ -2586,6 +2596,12 @@
     <div class="cart-form" id="cart-form">
       <input id="f-website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
       <h4>بيانات الطلب <span style="font-size:12px;color:#b04a3a">(كل البيانات إجبارية)</span></h4>
+      <label>اللوكيشن <b>*</b> <span class="loc-tip">ابدأ بيه، وكمّل بياناتك وإحنا بنظبط مكانك</span></label>
+      <div class="loc-row">
+        <input id="f-location" type="text" placeholder="لينك جوجل ماب أو دوس حدد موقعي" dir="ltr">
+        <button class="loc-btn" type="button" onclick="detectLocation()">📍 حدد موقعي</button>
+      </div>
+      <div id="zone-box" class="zone-box"></div>
       <label>رقم التليفون <b>*</b></label>
       <input id="f-phone" type="tel" inputmode="tel" placeholder="01xxxxxxxxx" dir="ltr">
       <label>اسم العميل <b>*</b></label>
@@ -2597,7 +2613,12 @@
         <option value="الجيزة">الجيزة</option>
       </select>
       <label>المنطقة / المدينة <b>*</b></label>
-      <select id="f-city" disabled><option value="">اختار المحافظة الأول</option></select>
+      <div class="city-combo" id="city-combo">
+        <input id="f-city-q" type="text" autocomplete="off" placeholder="اختار أو اكتب المنطقة" aria-label="المنطقة">
+        <span class="cc-arrow" aria-hidden="true">▾</span>
+        <div class="cc-list" id="cc-list" role="listbox" hidden></div>
+      </div>
+      <select id="f-city" disabled hidden aria-hidden="true" tabindex="-1"><option value="">اختار المحافظة الأول</option></select>
       <label>العنوان بالتفصيل <b>*</b></label>
       <input id="f-address" type="text" placeholder="المنطقة / الشارع / علامة مميزة">
       <div class="grid3">
@@ -2605,12 +2626,6 @@
         <div><label>رقم الدور <b>*</b></label><input id="f-floor" type="text" inputmode="numeric"></div>
         <div><label>رقم الشقة <b>*</b></label><input id="f-apt" type="text" inputmode="numeric"></div>
       </div>
-      <label>اللوكيشن <b>*</b></label>
-      <div class="loc-row">
-        <input id="f-location" type="text" placeholder="لينك جوجل ماب أو دوس حدد موقعي" dir="ltr">
-        <button class="loc-btn" type="button" onclick="detectLocation()">📍 حدد موقعي</button>
-      </div>
-      <div id="zone-box" class="zone-box"></div>
       <label>ملاحظات <b>*</b></label>
       <textarea id="f-notes" rows="3" placeholder="مثال: الكتابة على التورتة، ميعاد التسليم... (لو مفيش اكتب: لا يوجد)"></textarea>
       <div class="form-err" id="form-err"></div>
@@ -2792,7 +2807,7 @@
       if(!cart.length){ box.innerHTML='<div class="cart-empty">السلة فاضية — دوس "+ أضف" جنب أي صنف عشان تبدأ طلبك</div>'; }
       else{
         box.innerHTML=cart.map(function(i,idx){
-          var bl=BLOCKED[i.name] ? '<div class="cart-item-off">مش متاح دلوقتي في فرع '+esc(BLOCK_BR)+' — شيله عشان تقدر تبعت الطلب <button data-rm="'+idx+'">شيله ✕</button></div>' : '';
+          var bl=BLOCKED[i.key] ? '<div class="cart-item-off">مش متاح دلوقتي في فرع '+esc(BLOCK_BR)+' — شيله عشان تقدر تبعت الطلب <button data-rm="'+idx+'">شيله ✕</button></div>' : '';
           return '<div class="cart-item'+(bl?' blocked':'')+'">'+bl+'<div class="cart-item-top"><div><div class="cart-item-name">'+esc(i.name)+'</div>'+
             '<div class="cart-item-size">'+(label(i)?esc(label(i))+' — ':'')+money(i.price)+'</div>'+
             '</div><button class="cart-item-rm" data-rm="'+idx+'">حذف ✕</button></div>'+
@@ -2813,26 +2828,52 @@
       save(CART_KEY, cart); render();
     });
 
-    window.openCart=function(){ document.getElementById('cart-drawer').classList.add('open'); document.getElementById('cart-backdrop').classList.add('open'); document.body.style.overflow='hidden'; };
+    window.openCart=function(){ try{ if(window.SmileAutoLocate) setTimeout(window.SmileAutoLocate, 300); }catch(e){} document.getElementById('cart-drawer').classList.add('open'); document.getElementById('cart-backdrop').classList.add('open'); document.body.style.overflow='hidden'; };
     window.closeCart=function(){ document.getElementById('cart-drawer').classList.remove('open'); document.getElementById('cart-backdrop').classList.remove('open'); document.body.style.overflow=''; };
     window.clearCart=function(){ if(cart.length && confirm('تفريغ السلة بالكامل؟')){ cart=[]; save(CART_KEY,cart); render(); } };
     document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeCart(); });
 
-    window.detectLocation=function(){
+    // ---- تحديد الموقع: أول قراءة على طول، وبعدين بنحسّن الدقة في الخلفية (لحد 20 ثانية أو لحد الإرسال) ----
+    var LOC={ url:'', acc:null, best:null, watch:null, timer:null, method:'' };
+    var LOC_KEY='smile_loc_meta';
+    try{ var lm=JSON.parse(localStorage.getItem(LOC_KEY)||'null'); if(lm){ LOC.savedUrl=lm.url||''; LOC.savedMethod=lm.method||''; } }catch(e){}
+    function locMetaSave(){ try{ localStorage.setItem(LOC_KEY, JSON.stringify({url:LOC.url, method:LOC.method})); }catch(e){} }
+    function stopRefine(){
+      if(LOC.watch!=null && navigator.geolocation){ try{ navigator.geolocation.clearWatch(LOC.watch); }catch(e){} }
+      LOC.watch=null; clearTimeout(LOC.timer); LOC.timer=null;
+    }
+    window.SmileStopLocate=stopRefine;
+    function applyPos(p){
       var input=document.getElementById('f-location'), btn=document.querySelector('.loc-btn');
-      function fail(msg){ input.value=''; if(btn) btn.disabled=false; alert(msg); }
+      LOC.best=p; LOC.acc=Math.round(p.coords.accuracy||0); LOC.method='gps';
+      LOC.url='https://maps.google.com/?q='+p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);
+      input.value=LOC.url; input.classList.remove('invalid'); if(btn) btn.disabled=false;
+      saveForm(); locMetaSave(); updateZone();
+      try{ input.dispatchEvent(new Event('change')); }catch(e){}
+    }
+    function startRefine(){
+      stopRefine();
+      if(LOC.acc!=null && LOC.acc<=30) return;
+      try{
+        LOC.watch=navigator.geolocation.watchPosition(function(p){
+          if(!LOC.best || p.coords.accuracy < LOC.best.coords.accuracy-1) applyPos(p);
+          if(p.coords.accuracy<=30) stopRefine();
+        }, function(){}, {enableHighAccuracy:true, maximumAge:0, timeout:20000});
+      }catch(e){}
+      LOC.timer=setTimeout(stopRefine, 20000);
+    }
+    function locate(silent){
+      var input=document.getElementById('f-location'), btn=document.querySelector('.loc-btn');
+      function fail(msg){ if(input.value==='جاري تحديد الموقع...') input.value=''; if(btn) btn.disabled=false; if(!silent) alert(msg); }
       // المتصفحات بتمنع تحديد الموقع على المواقع اللي مش https
       if(!window.isSecureContext){
         fail('تحديد الموقع مش شغال لأن الموقع مفتوح بـ http.\nافتح الموقع من الرابط اللي بيبدأ بـ https://\nأو الصق لينك اللوكيشن من جوجل ماب في الخانة.');
         return;
       }
       if(!navigator.geolocation){ fail('المتصفح ده مش بيدعم تحديد الموقع — الصق لينك اللوكيشن من جوجل ماب في الخانة.'); return; }
+      stopRefine(); LOC.best=null; LOC.acc=null;
       input.value='جاري تحديد الموقع...'; if(btn) btn.disabled=true;
-      function ok(p){
-        input.value='https://maps.google.com/?q='+p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);
-        input.classList.remove('invalid'); if(btn) btn.disabled=false; saveForm(); updateZone();
-        try{ input.dispatchEvent(new Event('change')); }catch(e){}
-      }
+      function ok(p){ applyPos(p); startRefine(); }
       function err(e, triedLow){
         if(e && e.code===1){
           fail('المتصفح ممنوع من الوصول لموقعك.\nمن إعدادات المتصفح ← إعدادات المواقع ← الموقع (Location) اسمح للموقع ده، وبعدين جرّب تاني.\nأو الصق لينك اللوكيشن من جوجل ماب.');
@@ -2844,8 +2885,34 @@
         }
       }
       navigator.geolocation.getCurrentPosition(ok, function(e){ err(e,false); }, {enableHighAccuracy:true, timeout:12000, maximumAge:60000});
-    };
-
+    }
+    window.detectLocation=function(){ locate(false); };
+    // لو العميل سامح بالموقع قبل كده: نبدأ لوحدنا أول ما السلة تتفتح (من غير أي سؤال أو رسالة)
+    function autoLocate(){
+      if(LOC.watch!=null || LOC.url || !window.isSecureContext || !navigator.geolocation || !navigator.permissions) return;
+      var input=document.getElementById('f-location'), cur=(input.value||'').trim();
+      if(cur && !(cur===LOC.savedUrl && LOC.savedMethod==='gps')) return;   // لينك لصقه العميل بنفسه: منلمسهوش
+      try{
+        navigator.permissions.query({name:'geolocation'}).then(function(st){ if(st && st.state==='granted' && !LOC.url) locate(true); }).catch(function(){});
+      }catch(e){}
+    }
+    window.SmileAutoLocate=autoLocate;
+    function deviceInfo(){
+      var ua=navigator.userAgent||'', os=/iPhone|iPod/i.test(ua)?'iPhone':/iPad/i.test(ua)?'iPad':/Android/i.test(ua)?'Android':/Windows/i.test(ua)?'Windows':/Mac OS X|Macintosh/i.test(ua)?'Mac':/Linux|CrOS/i.test(ua)?'Linux':'غير معروف';
+      if(os==='Mac' && navigator.maxTouchPoints>1) os='iPad';
+      var mob=(navigator.userAgentData && navigator.userAgentData.mobile) || /Mobi|Android|iPhone|iPod/i.test(ua);
+      var kind=os==='iPad' || (/Android/i.test(ua) && !/Mobi/i.test(ua)) ? 'تابلت' : mob ? 'موبايل' : 'كمبيوتر';
+      var app=false; try{ app=window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }catch(e){}
+      return kind+' ('+os+')'+(app?' · من التطبيق':'');
+    }
+    function locInfo(val){
+      if(LOC.url && val===LOC.url){
+        var a=LOC.acc||0;
+        return 'حدد موقعي — دقة حوالي '+(a>=1000?(a/1000).toFixed(1)+' كم':a+' م')+(a>300?' ⚠ اتأكد من العميل':'');
+      }
+      if(val && val===LOC.savedUrl) return 'لوكيشن محفوظ من طلب قبل كده'+(LOC.savedMethod==='gps'?' (حدد موقعي)':'');
+      return 'لينك لصقه العميل';
+    }
     function saveForm(){ var d={}; FIELDS.forEach(function(f){ d[f[0]]=document.getElementById(f[0]).value; }); save(FORM_KEY,d); }
     // ---- delivery branches + nearest branch from customer location ----
     // ⚙️ إحداثيات فروع التوصيل (خط العرض، خط الطول) — تقريبية: عدّلها من جوجل ماب لدقة أعلى
@@ -2864,7 +2931,19 @@
     var FAR_KM=8;   // أبعد من كده نعتبر العنوان غالبًا برّه نطاق التوصيل
     var nearest=null; // {b, km}
     // ---- ربط برنامج النواقص + تسجيل الطلبات (سكريبت جوجل) ----
-    var RELAY='', NMAP={}, BLOCKED={}, BLOCK_BR='';
+    var RELAY='', NMAP={}, NSKIP={'products-torte-preorder':true}, BLOCKED={}, BLOCK_BR='';
+    function secOfName(n){ var c=null; try{ c=rawCard(n) || menuRowByName(n); }catch(e){} var s=c && c.closest('.product-section'); return s ? s.id : ''; }
+    function isSkipItem(n){ var sid=secOfName(n); return !!(sid && NSKIP[sid]); }
+    // الربط: مقاس+نكهة ← نكهة ← مقاس ← المنتج كله
+    function mapOf(i){
+      var n=i.name, sz=i.size||'', fl=i.flavor||'', keys=[];
+      if(sz && fl) keys.push(n+'|s:'+sz+'|f:'+fl);
+      if(fl) keys.push(n+'|f:'+fl);
+      if(sz) keys.push(n+'|s:'+sz);
+      keys.push(n);
+      for(var k=0;k<keys.length;k++){ if(NMAP[keys[k]]) return NMAP[keys[k]]; }
+      return '';
+    }
     function normA(s){
       return String(s==null?'':s).replace(/[\u064B-\u0652\u0670\u0640]/g,'').replace(/[٠-٩]/g,function(d){ return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); })
         .replace(/[إأآا]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/ء/g,'')
@@ -2887,7 +2966,7 @@
           if(!br || !br.today) return false;                                  // الفرع لسه ما رفعش التوافر النهارده
           var off={}; (br.off||[]).forEach(function(n){ off[normA(n)]=1; });
           var hit=false;
-          cart.forEach(function(i){ var m=NMAP[i.name]; if(m && off[normA(m)]){ BLOCKED[i.name]=1; hit=true; } });
+          cart.forEach(function(i){ if(isSkipItem(i.name)) return; var m=mapOf(i); if(m && off[normA(m)]){ BLOCKED[i.key]=1; hit=true; } });
           BLOCK_BR=nearest.b.name.replace(/^فرع\s*/,'');
           return hit;
         })
@@ -2902,7 +2981,7 @@
           cid:logOrder.cid, website:(document.getElementById('f-website')||{}).value||'',
           name:v['f-name'], phone:phone, gov:v['f-gov'], city:v['f-city'],
           address:v['f-address']+' — عقار '+v['f-building']+' · دور '+v['f-floor']+' · شقة '+v['f-apt'],
-          location:v['f-location'], notes:v['f-notes'], branch: nearest ? nearest.b.name.replace(/^فرع\s*/,'') : 'لم يتحدد',
+          location:v['f-location'], notes:v['f-notes'], device: deviceInfo()+' · '+locInfo(v['f-location']), branch: nearest ? nearest.b.name.replace(/^فرع\s*/,'') : 'لم يتحدد',
           items: cart.map(function(i){ return {name:i.name, size:i.size||'', flavor:i.flavor||'', qty:i.qty, price:i.price}; })
         }});
         var sent=false;
@@ -2965,6 +3044,7 @@
       'الجيزة':['إمبابة','الكيت كات','الوراق','أرض اللواء','بشتيل','ناهيا','كرداسة','بولاق الدكرور','صفط اللبن','العجوزة','المهندسين','الدقي','العمرانية','الطالبية','الهرم','فيصل','حدائق الأهرام','الجيزة','المنيب','ساقية مكي','أوسيم','المنيرة الغربية','منشأة القناطر','أبو النمرس','الحوامدية','البدرشين','العياط','الصف','أطفيح','6 أكتوبر','الشيخ زايد','الواحات البحرية']
     };
     var OTHER='منطقة أخرى (اكتبها في العنوان)';
+    function cityComboSync(){ var q=document.getElementById('f-city-q'), sel=document.getElementById('f-city'); if(q && sel) q.value=sel.value||''; }
     function fillCities(keep){
       var gov=document.getElementById('f-gov').value, sel=document.getElementById('f-city');
       if(!gov){ sel.disabled=true; sel.innerHTML='<option value="">اختار المحافظة الأول</option>'; return; }
@@ -2972,20 +3052,72 @@
       sel.disabled=false;
       sel.innerHTML='<option value="">اختار المنطقة</option>'+list.concat([OTHER]).map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join('');
       if(keep && [].some.call(sel.options,function(o){ return o.value===keep; })) sel.value=keep;
+      cityComboSync();
     }
+    // المنطقة: قايمة كاملة + بحث بأي جزء من الاسم (مش بيفرق بين ة/ه و أ/إ/ا و ى/ي)
+    (function(){
+      var q=document.getElementById('f-city-q'), list=document.getElementById('cc-list'), sel=document.getElementById('f-city'), gov=document.getElementById('f-gov');
+      if(!q || !list || !sel) return;
+      var items=[], act=-1;
+      function all(any){
+        var g=gov.value, out=[];
+        var govs=Object.keys(CITIES); if(g) govs=any ? [g].concat(govs.filter(function(x){ return x!==g; })) : [g];
+        govs.forEach(function(gg){ (CITIES[gg]||[]).slice().sort(function(a,b){ return a.localeCompare(b,'ar'); }).forEach(function(c){ out.push({c:c, g:gg}); }); });
+        out.push({c:OTHER, g:g||''});
+        return out;
+      }
+      function draw(filter){
+        var f=normA(filter||''), src=all(!!f);
+        items=f ? src.filter(function(x){ return x.c===OTHER || normA(x.c).indexOf(f)>-1; }) : src;
+        act=items.length && f ? 0 : -1;
+        list.innerHTML=items.map(function(x,k){ return '<div class="cc-opt'+(k===act?' act':'')+(x.c===sel.value && x.g===gov.value?' sel':'')+'" data-k="'+k+'" role="option">'+esc(x.c)+(x.c===OTHER||x.g===gov.value?'':' <small>'+esc(x.g)+'</small>')+'</div>'; }).join('') || '<div class="cc-none">مفيش منطقة بالاسم ده — اختار «'+esc(OTHER)+'»</div>';
+        var was=list.hidden; list.hidden=false;
+        if(was){ try{ setTimeout(function(){ list.scrollIntoView({block:'nearest', behavior:'smooth'}); }, 30); }catch(e){} }
+      }
+      function pick(x){
+        if(!x) return;
+        if(x.g && gov.value!==x.g){ gov.value=x.g; gov.classList.remove('invalid'); fillCities(''); updateZone(); }
+        if(!gov.value){ q.value=''; return; }
+        sel.value=x.c; sel.classList.remove('invalid'); q.classList.remove('invalid'); q.value=x.c;
+        try{ sel.dispatchEvent(new Event('change')); }catch(e){}
+        saveForm(); close();
+      }
+      function close(){ list.hidden=true; act=-1; }
+      q.addEventListener('focus', function(){ q.select(); draw(''); });
+      q.addEventListener('click', function(){ if(list.hidden) draw(''); });
+      document.querySelector('#city-combo .cc-arrow').addEventListener('mousedown', function(e){ e.preventDefault(); if(list.hidden){ q.focus(); draw(''); } else close(); });
+      q.addEventListener('input', function(){ draw(q.value); });
+      q.addEventListener('keydown', function(e){
+        if(e.key==='ArrowDown' || e.key==='ArrowUp'){ e.preventDefault(); if(list.hidden) draw(q.value); if(!items.length) return; act=(act+(e.key==='ArrowDown'?1:-1)+items.length)%items.length; [].forEach.call(list.children,function(el,k){ el.classList.toggle('act', k===act); }); var a=list.children[act]; if(a && a.scrollIntoView) a.scrollIntoView({block:'nearest'}); }
+        else if(e.key==='Enter'){ e.preventDefault(); if(act>-1) pick(items[act]); else if(items.length===1 || (items.length===2 && items[1].c===OTHER)) pick(items[0]); }
+        else if(e.key==='Escape'){ close(); cityComboSync(); }
+      });
+      list.addEventListener('mousedown', function(e){ e.preventDefault(); var o=e.target.closest('.cc-opt'); if(o) pick(items[+o.getAttribute('data-k')]); });
+      q.addEventListener('blur', function(){
+        setTimeout(function(){
+          var t=normA(q.value);
+          if(t){ var ex=all(true).filter(function(x){ return normA(x.c)===t; }); if(ex.length===1 || (ex.length && gov.value)) { pick(ex[0]); return; } }
+          if(!q.value.trim()){ sel.value=''; saveForm(); }
+          close(); cityComboSync();
+        }, 120);
+      });
+      // علامة «ناقص» الحمرا اللي على الـ select تبان على الخانة نفسها
+      if(window.MutationObserver) new MutationObserver(function(){ q.classList.toggle('invalid', sel.classList.contains('invalid')); }).observe(sel, {attributes:true, attributeFilter:['class']});
+    })();
     (function(){
       var d=load(FORM_KEY)||{};
       FIELDS.forEach(function(f){
         var el=document.getElementById(f[0]);
         if(d[f[0]] && f[0]!=='f-notes' && f[0]!=='f-city') el.value=d[f[0]];
         var ev=el.tagName==='SELECT'?'change':'input';
-        el.addEventListener(ev, function(){ el.classList.remove('invalid'); if(f[0]==='f-gov') fillCities(''); saveForm(); if(f[0]==='f-gov'||f[0]==='f-location') updateZone(); });
+        el.addEventListener(ev, function(){ el.classList.remove('invalid'); if(f[0]==='f-gov') fillCities(''); if(f[0]==='f-location'){ stopRefine(); if(el.value!==LOC.url){ LOC.url=''; LOC.method='link'; locMetaSave(); } } saveForm(); if(f[0]==='f-gov'||f[0]==='f-location') updateZone(); });
       });
       fillCities(d['f-city']||'');
       updateZone();
     })();
 
     window.sendOrder=function(){
+      stopRefine();
       var err=document.getElementById('form-err'); err.style.display='none';
       if(!cart.length){ err.textContent='السلة فاضية'; err.style.display='block'; return; }
       var v={}, missing=[];
@@ -3038,12 +3170,14 @@
       L.push(v['f-address']);
       L.push('عقار '+v['f-building']+' · دور '+v['f-floor']+' · شقة '+v['f-apt']);
       L.push('اللوكيشن: '+v['f-location']);
+      L.push('طريقة التحديد: '+locInfo(v['f-location']));
+      L.push('الجهاز: '+deviceInfo());
       L.push('أقرب فرع: '+(nearest ? nearest.b.name.replace(/^فرع\s*/,'')+' (حوالي '+nearest.km.toFixed(1)+' كم)' : 'لم يتحدد'));
       if(nearest && nearest.km>FAR_KM) L.push('*تنبيه:* العنوان بعيد عن أقرب فرع توصيل (أكتر من '+FAR_KM+' كم) — غالبًا برّه الزون');
       var nItems=cart.length;
       L.push('', '*الأصناف* — '+nItems+(nItems===1?' صنف':nItems===2?' صنفين':nItems<=10?' أصناف':' صنف'), LINE);
       cart.forEach(function(i,n){
-        L.push((n+1)+'. *'+i.name+'*');
+        L.push((n+1)+'. *'+i.name+'*'+(isSkipItem(i.name)?'  (حجز مسبق — يتأكد مع الفرع)':''));
         L.push('      '+(label(i)?label(i)+'  |  ':'')+'العدد '+i.qty+'  |  '+money(i.price*i.qty));
       });
       L.push(LINE, '*الإجمالي: '+money(total())+'*', '(من غير خدمة التوصيل)');
@@ -3325,6 +3459,7 @@
       undoLayout();
       RELAY = (typeof d.relay==='string' && /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(d.relay)) ? d.relay : '';
       NMAP = (d.nawaqes && typeof d.nawaqes==='object') ? d.nawaqes : {};
+      NSKIP = (d.nawaqesSkip && typeof d.nawaqesSkip==='object') ? d.nawaqesSkip : {'products-torte-preorder':true};
       Object.keys(LIVE).forEach(function(k){ delete LIVE[k]; });
       Object.keys(OFF).forEach(function(k){ delete OFF[k]; });
       (d.sections||[]).forEach(function(s){ (s.items||[]).forEach(function(it){ if(typeof it.price==='number') LIVE[it.name+'|'+(it.size||'')]=it.price; }); });
