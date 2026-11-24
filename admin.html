@@ -377,6 +377,7 @@ div.theme-card{ cursor:pointer; }
 .nw-sec.skip span{ color:var(--muted); text-decoration:line-through; }
 .nw-skip{ display:flex; gap:6px; align-items:center; font-size:12.5px; font-weight:700; color:var(--muted); cursor:pointer; }
 .nw-row.sub{ margin-inline-start:22px; } .nw-row[hidden]{ display:none !important; }
+.nw-stat{ font-size:13px; font-weight:700; color:#a87b12; } .nw-head.ok .nw-stat{ color:#1e8a4f; } .nw-head.ok .st{ color:#1e8a4f; }
 .nw-more{ border:0; background:none; color:var(--gold-2); font-weight:800; font-size:12px; cursor:pointer; padding:0 4px; } .nw-row.sub .nm{ font-weight:600; font-size:13.5px; color:var(--muted); }
 .nw-row{ display:grid; grid-template-columns: minmax(140px,1fr) 22px minmax(180px,1.3fr) 22px; gap:8px; align-items:center; padding:5px 8px; border-radius:10px; }
 .nw-row:nth-child(even){ background:var(--ivory); } .nw-row .nm{ font-weight:700; font-size:14.5px; } .nw-row .ar{ color:var(--muted); text-align:center; }
@@ -1647,8 +1648,10 @@ function nwSubs(p) { // الصفوف الفرعية للمنتج
   return out;
 }
 function nwCovered(p, map = draft.nawaqes || {}) { // المنتج مربوط لو المنتج كله مربوط، أو كل النكهات، أو كل المقاسات
+  const subs = nwSubs(p);
+  if (nwFlv(p).length) { const r = d => { const x = subs.filter(y => y.dim === d); return x.length && x.every(y => map[y.k]); }; return r('f') || r('sf'); }
   if (map[p.name]) return true;
-  const subs = nwSubs(p); if (!subs.length) return false;
+  if (!subs.length) return false;
   const all = d => { const r = subs.filter(x => x.dim === d); return r.length && r.every(x => map[x.k]); };
   return all('f') || all('s') || all('sf');
 }
@@ -1656,6 +1659,7 @@ function nwUnmapped() { if (!draft || !draft.relay) return 0; return vis().filte
 // لو المنتج كله متربط بصنف نكهة/مقاس واحد (زي دونتس ← دونتس لوتس) أو كل النكهات/المقاسات اتربطت: ربط المنتج كله بيتشال
 function nwDropMain(p, map) {
   if (!map[p.name]) return false;
+  if (nwFlv(p).length) { delete map[p.name]; return true; } // المنتج اللي ليه نكهات: كل نكهة بتتربط لوحدها
   const subs = nwSubs(p), vals = new Set(subs.map(x => map[x.k]).filter(Boolean).map(nA));
   const full = d => { const r = subs.filter(x => x.dim === d); return r.length && r.every(x => map[x.k]); };
   // ربط المنتج كله بنفس صنف نكهة أو مقاس معيّن = غلط (كان هيمنع باقي النكهات/المقاسات لما الصنف ده يخلص)
@@ -1671,6 +1675,10 @@ function nwSuggestSub(p, x, sys) {
   for (const t of tries) { const hit = sys.find(s => nA(s) === nA(t)); if (hit) return hit; }
   if (x.dim === 'f') { // النكهات: بالكلمات القريبة، بشرط إن اسم النكهة يكون موجود
     const s = suggestFor(p.name + ' ' + x.f, sys); if (s && nA(s).includes(nA(x.f))) return s;
+    // وإلا: صنف واحد بس فيه اسم النكهة وأول كلمة من اسم المنتج (زي «جاتوه لوكس» + كريمة ← «جاتوه كريمة»)
+    const w1 = nA(p.name).split(' ')[0].replace(/^ال(?=..)/, ''), f = nA(x.f);
+    const c = sys.filter(t => { const n = nA(t); return n.includes(f) && n.split(' ').some(w => w.replace(/^ال(?=..)/, '') === w1); });
+    if (c.length === 1) return c[0];
   }
   return '';
 }
@@ -1684,6 +1692,9 @@ function renderNawaqes(v) {
   }
   const P = vis(), sys = relayCache && relayCache.url === url ? relayCache.products : null;
   const skip = draft.nawaqesSkip || (draft.nawaqesSkip = { 'products-torte-preorder': true });
+  { let purged = 0; P.forEach(p => { if (map[p.name] && nwFlv(p).length) { delete map[p.name]; purged++; } }); // ربط «المنتج كله» ملوش لازمة للي ليه نكهات وبيلخبط
+    if (purged) setTimeout(() => { refresh(false); toast(`شلنا ربط «المنتج كله» من ${purged} منتج ليه نكهات — اربط كل نكهة لوحدها واحفظ`); }, 0); }
+
   const PM = P.filter(p => !nwSkip(p.sid));
   const linked = PM.filter(p => nwCovered(p, map)).length;
   const cntTxt = () => `${PM.filter(p => nwCovered(p, map)).length} من ${PM.length} صنف مربوط — الصنف اللي مش مربوط عمره ما بيتمنع`;
@@ -1707,10 +1718,14 @@ function renderNawaqes(v) {
       <p class="hint">المنتج اللي ليه نكهات أو أكتر من مقاس بيبان تحته صف لكل نكهة/مقاس — اربط كل واحدة بالصنف بتاعها في برنامج النواقص. الترتيب: المقاس والنكهة ← النكهة ← المقاس ← المنتج كله. أي نكهة أو مقاس تضيفه بعدين من ✎ هيظهر هنا لوحده.</p>
       <div class="nw-list" id="nwList">${allSecs().map(s => { const items = P.filter(p => p.sid === s.id); if (!items.length) return ''; const sk = nwSkip(s.id);
         return `<div class="nw-sec ${sk ? 'skip' : ''}"><span>${esc(shortTitle(s.title))}</span><label class="nw-skip"><input type="checkbox" data-skip="${esc(s.id)}" ${sk ? 'checked' : ''}> مش تبع النواقص (حجز مسبق — عمره ما يتمنع)</label></div>` + (sk ? '' : items.map(p => {
-          const row = (k, lb, sub, more, hid) => { const m = map[k] || '', ok = m && sysSet.has(nA(m)); return `<div class="nw-row ${sub ? 'sub' : ''} ${m ? (ok ? 'ok' : 'bad') : ''}" data-n="${esc(p.name)}" data-k="${esc(k)}" ${hid ? 'data-hid hidden' : ''}><span class="nm">${sub ? '↳ ' : ''}${esc(lb)}${more ? ` <button class="nw-more" type="button" data-more="${esc(p.name)}">+ ربط كل مقاس لوحده (${more})</button>` : ''}</span><span class="ar">⇄</span><input class="field" list="nwSys" value="${esc(m)}" placeholder="${sub ? 'لو فاضي بياخد ربط المنتج كله' : 'اختار الصنف من برنامج النواقص...'}"><span class="st">${m ? (ok ? '✓' : '⚠') : ''}</span></div>`; };
-          const subs = nwSubs(p), szSubs = subs.filter(x => x.dim !== 'f');
-          const openSz = !szSubs.length || !map[p.name] || szSubs.some(x => map[x.k]);
-          return row(p.name, p.name, false, szSubs.length && !openSz ? szSubs.length : 0) + subs.map(x => row(x.k, x.lb, true, 0, x.dim !== 'f' && !openSz)).join('');
+          const flvHead = (p, flv, more) => { const n = flv.filter(x => map[x.k]).length, all = n === flv.length;
+            return `<div class="nw-row nw-head ${all ? 'ok' : 'part'}" data-n="${esc(p.name)}" data-k="${esc(p.name)}"><span class="nm">${esc(p.name)}${more ? ` <button class="nw-more" type="button" data-more="${esc(p.name)}">+ ربط كل مقاس لوحده (${more})</button>` : ''}</span><span class="ar"></span><span class="nw-stat">${all ? '✓ كل النكهات مربوطة' : `اربط كل نكهة تحت — ${n} من ${flv.length} مربوطين`}</span><span class="st">${all ? '✓' : ''}</span></div>`; };
+          const flvP = nwFlv(p).length > 0;
+          const row = (k, lb, sub, more, hid) => { const m = map[k] || '', ok = m && sysSet.has(nA(m)); return `<div class="nw-row ${sub ? 'sub' : ''} ${m ? (ok ? 'ok' : 'bad') : ''}" data-n="${esc(p.name)}" data-k="${esc(k)}" ${hid ? 'data-hid hidden' : ''}><span class="nm">${sub ? '↳ ' : ''}${esc(lb)}${more ? ` <button class="nw-more" type="button" data-more="${esc(p.name)}">+ ربط كل مقاس لوحده (${more})</button>` : ''}</span><span class="ar">⇄</span><input class="field" list="nwSys" value="${esc(m)}" placeholder="${sub && !flvP ? 'لو فاضي بياخد ربط المنتج كله' : 'اختار الصنف من برنامج النواقص...'}"><span class="st">${m ? (ok ? '✓' : '⚠') : ''}</span></div>`; };
+          const subs = nwSubs(p), szSubs = subs.filter(x => x.dim !== 'f'), flv = subs.filter(x => x.dim === 'f');
+          const openSz = !szSubs.length || szSubs.some(x => map[x.k]) || (!flv.length && !map[p.name]);
+          const head = flv.length ? flvHead(p, flv, szSubs.length && !openSz ? szSubs.length : 0) : row(p.name, p.name, false, szSubs.length && !openSz ? szSubs.length : 0);
+          return head + subs.map(x => row(x.k, x.lb, true, 0, x.dim !== 'f' && !openSz)).join('');
         }).join('')); }).join('')}</div>
     </section>` : ''}`;
   $('#nwTest', v).onclick = async () => {
@@ -1736,7 +1751,8 @@ function renderNawaqes(v) {
     inp.value = map[n] || '';
     row.className = 'nw-row ' + (sub ? 'sub ' : '') + (map[n] ? 'ok' : ''); $('.st', row).textContent = map[n] ? '✓' : '';
     const p = byName.get(row.dataset.n);
-    if (sub && p && nwDropMain(p, map)) { const mr = list.querySelector(`.nw-row[data-k="${CSS.escape(p.name)}"]`); if (mr) { $('input', mr).value = ''; mr.className = 'nw-row'; $('.st', mr).textContent = ''; } toast('كل النكهات/المقاسات اتربطت — شلنا ربط «' + p.name + '» كله عشان كان متربط بواحدة منهم', 'ok'); }
+    if (sub && p && !nwFlv(p).length && nwDropMain(p, map)) { const mr = list.querySelector(`.nw-row[data-k="${CSS.escape(p.name)}"]`); if (mr) { $('input', mr).value = ''; mr.className = 'nw-row'; $('.st', mr).textContent = ''; } toast('كل النكهات/المقاسات اتربطت — شلنا ربط «' + p.name + '» كله عشان كان متربط بواحدة منهم', 'ok'); }
+    if (p && nwFlv(p).length) { const h = list.querySelector(`.nw-head[data-n="${CSS.escape(p.name)}"]`); if (h) { const fl = nwSubs(p).filter(x => x.dim === 'f'), c = fl.filter(x => map[x.k]).length, all = c === fl.length; h.className = 'nw-row nw-head ' + (all ? 'ok' : 'part'); $('.nw-stat', h).textContent = all ? '✓ كل النكهات مربوطة' : `اربط كل نكهة تحت — ${c} من ${fl.length} مربوطين`; $('.st', h).textContent = all ? '✓' : ''; } }
     refresh(false); $('#nwCount').textContent = cntTxt();
   });
   $('#nwAuto', v).onclick = () => {
