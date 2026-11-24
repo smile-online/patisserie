@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 27,
- "updated": "2026-11-12 16:28",
+ "rev": 28,
+ "updated": "2026-11-24 03:12",
  "theme": "default",
  "announce": {
   "on": false,
@@ -1139,5 +1139,7 @@
   },
   "groups": [],
   "hidden": {}
- }
+ },
+ "relay": "https://script.google.com/macros/s/AKfycbwG6CKY3FM_rzknabF5nfTHfuTldeXKrJLOPe-BpEJi0lB4LUuQKQcMkaXiyeizmQ6vgg/exec",
+ "nawaqes": {}
 }
