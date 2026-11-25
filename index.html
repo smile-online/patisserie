@@ -647,6 +647,32 @@
   .stepper button{ border:none; background:transparent; width: 32px; height: 34px; font-size: 18px; font-weight:800; color: var(--teal-deep); cursor:pointer; font-family:'Tajawal'; }
   .stepper span{ font-weight:800; color: var(--teal-deep); min-width: 20px; text-align:center; }
   .menu-row{ align-items:center; }
+  .dlv-seg{ display:flex; gap:6px; background:#f6efdf; padding:4px; border-radius:12px; }
+  .dlv-seg button{ flex:1; border:0; background:transparent; padding:10px 6px; border-radius:9px; font:inherit; font-weight:800; font-size:14px; color:#5b7370; cursor:pointer; }
+  .dlv-seg button.on{ background:#00404A; color:#fff; box-shadow:0 4px 12px -6px rgba(0,64,74,.6); }
+  .dlv-later{ display:flex; gap:8px; margin-top:8px; }
+  .dlv-later[hidden]{ display:none; }
+  .dlv-later select{ flex:1; padding:11px 10px; border-radius:10px; border:1.5px solid #e3d9c2; font:inherit; font-size:15px; background:#fff; color:#00404A; }
+  .dlv-later select.invalid{ border-color:#c0392b; }
+  .dlv-note{ font-size:13px; color:#5b7370; margin-top:6px; line-height:1.6; }
+  .dlv-note.warn{ color:#8a5a00; background:#FFF6DA; border-radius:10px; padding:8px 10px; }
+  .dlv-note.err{ color:#a3271b; background:#fdecea; border-radius:10px; padding:8px 10px; }
+  .pay-box{ display:flex; flex-wrap:wrap; gap:8px; }
+  .pay-box button{ flex:1 1 120px; border:1.5px solid #e3d9c2; background:#fff; border-radius:12px; padding:11px 10px; font:inherit; font-weight:800; font-size:14.5px; color:#00404A; cursor:pointer; }
+  .pay-box button.on{ border-color:#00404A; background:#00404A; color:#fff; }
+  .pay-box.invalid button{ border-color:#c0392b; }
+  .pay-note{ font-size:13px; color:#5b7370; margin-top:6px; }
+  .cart-disc{ background:#EAF7EF; border:1px dashed #2e8b57; color:#1f6b40; border-radius:12px; padding:10px 14px; font-size:14px; font-weight:700; margin:-4px 0 10px; line-height:1.7; }
+  .cart-disc.tease{ background:#FFF6DA; border-color:#d9a400; color:#7a5800; }
+  .cart-disc b{ display:block; font-size:17px; color:#00404A; }
+  .add-mini.book-btn{ background:#00404A; color:#fff; }
+  .bk-form{ text-align:right; margin-top:10px; }
+  .od-bg .od-card{ max-height:calc(100vh - 36px); overflow:auto; }
+  .bk-form label{ display:block; font-size:13px; font-weight:700; color:#00404A; margin:10px 0 4px; }
+  .bk-form input, .bk-form select, .bk-form textarea{ width:100%; padding:11px 12px; border-radius:10px; border:1.5px solid #e3d9c2; font:inherit; font-size:15px; background:#fff; box-sizing:border-box; }
+  .bk-form .invalid{ border-color:#c0392b; }
+  .bk-form .bk-err{ color:#a3271b; font-size:13px; margin-top:8px; min-height:1em; }
+  .bk-form .bk-send{ width:100%; margin-top:14px; border:0; border-radius:14px; padding:14px; font:inherit; font-weight:900; font-size:16px; background:#25D366; color:#fff; cursor:pointer; }
   .loc-tip{ font-weight:600; font-size:12px; color:#5b7370; margin-inline-start:6px; }
   .city-combo{ position:relative; }
   .city-combo input{ width:100%; padding-inline-end:34px; }
@@ -662,6 +688,7 @@
   .cart-item-off button{ border:0; background:#a33a2c; color:#fff; font-weight:800; font-size:13px; padding:5px 12px; border-radius:999px; cursor:pointer; font-family:inherit; }
   .loc-hint{ margin:6px 0 0; font-size:13px; font-weight:700; color:#a33a2c; background:#fdecea; border-radius:10px; padding:8px 12px; line-height:1.6; }
   .menu-row .opt-ctl{ margin-right: 10px; }
+  @media (max-width:560px){ .menu-name{ white-space:normal; min-width:0; flex:1 1 auto; } .menu-dots{ min-width:8px; } }
   .menu-row .menu-size{ font-size:.82em; color:#5b7370; font-weight:600; margin-inline-start:6px; }
   .menu-row[data-replaced]{ display:none !important; }
   .add-row, .menu-add{ display:none !important; }
@@ -1051,7 +1078,7 @@
       </div>
       <ul class="hero-facts">
         <li><b>15</b> فرع في القاهرة والجيزة</li>
-        <li><b>توصيل</b> يوميًا من 2 ظهرًا لـ 1 صباحًا</li>
+        <li><b>توصيل</b> <span class="dlv-hours">يوميًا من 2 ظهرًا لـ 1 صباحًا</span></li>
       </ul>
     </div>
     <div class="hero-stack" id="hero-stack" aria-hidden="true"></div>
@@ -2025,7 +2052,7 @@
     <div class="section-title"><h2>فروعنا</h2></div>
     <p class="section-sub">15 فرع يخدموك في كل مكان قريب منك</p>
     <div class="delivery-banner">
-      🛵 <b>مواعيد خدمة التوصيل:</b> يوميًا من 2 ظهرًا حتى 1 صباحًا
+      🛵 <b>مواعيد خدمة التوصيل:</b> <span class="dlv-hours">يوميًا من 2 ظهرًا حتى 1 صباحًا</span>
     </div>
     <div class="branch-grid">
       <div class="branch-card">
@@ -2590,6 +2617,7 @@
   <div class="cart-body">
     <div id="cart-items"></div>
     <div class="cart-total"><span>الإجمالي</span><span id="cart-total">0 ج.م.</span></div>
+    <div class="cart-disc" id="cart-disc" hidden></div>
     <div class="cart-notes">
       <div>1- يتم إضافة خدمة التوصيل من خلال متلقي الطلب</div>
       <div>2- في حالة عدم توفر منتج سوف يتم التواصل معك</div>
@@ -2603,6 +2631,12 @@
         <button class="loc-btn" type="button" onclick="detectLocation()">📍 حدد موقعي</button>
       </div>
       <div id="zone-box" class="zone-box"></div>
+      <label>ميعاد التوصيل <b>*</b></label>
+      <div class="dlv-box" id="dlv-box">
+        <div class="dlv-seg" role="radiogroup" aria-label="ميعاد التوصيل"><button type="button" data-dm="now" class="on">🛵 في أقرب وقت</button><button type="button" data-dm="later">📅 ميعاد محدد</button></div>
+        <div class="dlv-later" id="dlv-later" hidden><select id="dlv-day" aria-label="اليوم"></select><select id="dlv-time" aria-label="الساعة"></select></div>
+        <div class="dlv-note" id="dlv-note"></div>
+      </div>
       <label>رقم التليفون <b>*</b></label>
       <input id="f-phone" type="tel" inputmode="tel" placeholder="01xxxxxxxxx" dir="ltr">
       <label>اسم العميل <b>*</b></label>
@@ -2629,6 +2663,9 @@
       </div>
       <label>ملاحظات <b>*</b></label>
       <textarea id="f-notes" rows="3" placeholder="مثال: الكتابة على التورتة، ميعاد التسليم... (لو مفيش اكتب: لا يوجد)"></textarea>
+      <label>طريقة الدفع <b>*</b> <span class="loc-tip">مع عامل التوصيل</span></label>
+      <div class="pay-box" id="pay-box" role="radiogroup" aria-label="طريقة الدفع"></div>
+      <div class="pay-note" id="pay-note"></div>
       <div class="form-err" id="form-err"></div>
     </div>
   </div>
@@ -2685,6 +2722,7 @@
     function qtyOf(key){ var i=find(key); return i<0 ? 0 : cart[i].qty; }
 
     function setQty(item, q){
+      if(q>0 && PRE_SECS[secOfName(item.name)]){ toast('الصنف ده بيتحجز — دوس «📞 احجز»'); return; }
       var i=find(item.key);
       if(q<=0){ if(i>=0) cart.splice(i,1); }
       else if(i<0){ cart.push({key:item.key, name:item.name, size:item.size, flavor:item.flavor||'', price:item.price, qty:q}); }
@@ -2704,6 +2742,7 @@
         var a=e.target.getAttribute('data-a'); if(!a) return;
         var item=get();
         if(!item){ if(onNeedFlavor) onNeedFlavor(); return; }
+        if(a==='book'){ openBooking(item); return; }
         var q=qtyOf(item.key);
         if((a==='add'||a==='inc') && OFF[item.name+'|'+item.size]){ toast('الصنف ده نفذ حاليًا'); return; }
         if(a==='add'){ setQty(item, 1); toast('✓ اتضاف للسلة: '+item.name+(label(item)?' ('+label(item)+')':'')); bumpFab(); try{ document.dispatchEvent(new CustomEvent('smile:added',{detail:{el:e.target, card:c.card}})); }catch(err){} }
@@ -2713,6 +2752,8 @@
       return c;
     }
     function paintCtl(c){
+      if(c.pre===undefined && c.el.isConnected) c.pre=!!preSecOf(c.el);
+      if(c.pre){ if(c._sig!=='book'){ c._sig='book'; c.el.innerHTML='<button type="button" class="add-mini book-btn" data-a="book">📞 احجز</button>'; } return; }
       var item=c.get(), q=item ? qtyOf(item.key) : 0, sig=(item?item.key:'-')+':'+q;
       if(c._sig===sig) return; c._sig=sig;
       c.el.innerHTML = q ? '<span class="stepper"><button type="button" data-a="inc" aria-label="زيادة">+</button><span>'+q+'</span><button type="button" data-a="dec" aria-label="نقص">−</button></span>'
@@ -2818,6 +2859,7 @@
       }
       document.getElementById('cart-total').textContent=money(total());
       document.getElementById('send-btn').disabled=!cart.length;
+      try{ discRender(); }catch(e){}
     }
 
     document.getElementById('cart-items').addEventListener('click', function(e){
@@ -2829,7 +2871,7 @@
       save(CART_KEY, cart); render();
     });
 
-    window.openCart=function(){ try{ if(window.SmileAutoLocate) setTimeout(window.SmileAutoLocate, 300); }catch(e){} document.getElementById('cart-drawer').classList.add('open'); document.getElementById('cart-backdrop').classList.add('open'); document.body.style.overflow='hidden'; };
+    window.openCart=function(){ try{ if(window.SmileAutoLocate) setTimeout(window.SmileAutoLocate, 300); dlvRender(); var ph=document.getElementById('f-phone'); if(ph && ph.value) checkFirst(ph.value); }catch(e){} document.getElementById('cart-drawer').classList.add('open'); document.getElementById('cart-backdrop').classList.add('open'); document.body.style.overflow='hidden'; };
     window.closeCart=function(){ document.getElementById('cart-drawer').classList.remove('open'); document.getElementById('cart-backdrop').classList.remove('open'); document.body.style.overflow=''; };
     window.clearCart=function(){ if(cart.length && confirm('تفريغ السلة بالكامل؟')){ cart=[]; save(CART_KEY,cart); render(); } };
     document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeCart(); });
@@ -2918,19 +2960,20 @@
     }
     function saveForm(){ var d={}; FIELDS.forEach(function(f){ d[f[0]]=document.getElementById(f[0]).value; }); save(FORM_KEY,d); }
     // ---- delivery branches + nearest branch from customer location ----
-    // ⚙️ إحداثيات فروع التوصيل (خط العرض، خط الطول) — تقريبية: عدّلها من جوجل ماب لدقة أعلى
+    // ⚙️ أماكن فروع التوصيل (من جوجل ماب) — بتتعدّل من لوحة التحكم ← «📍 فروع التوصيل»
     var DELIVERY_BRANCHES=[
-      {name:'فرع طلعت حرب',   gov:'الجيزة',  lat:30.0762, lng:31.2096},
-      {name:'فرع القومية 1',   gov:'الجيزة',  lat:30.0832, lng:31.2071},
-      {name:'فرع السودان',     gov:'الجيزة',  lat:30.0662, lng:31.2092},
-      {name:'فرع الوراق',      gov:'الجيزة',  lat:30.0958, lng:31.2049},
-      {name:'فرع ناهيا 2',     gov:'الجيزة',  lat:30.0446, lng:31.1796},
-      {name:'فرع بشتيل',       gov:'الجيزة',  lat:30.0702, lng:31.1853},
-      {name:'فرع أرض اللواء',  gov:'الجيزة',  lat:30.0593, lng:31.1948},
-      {name:'فرع شبرا',        gov:'القاهرة', lat:30.0784, lng:31.2443},
-      {name:'فرع المظلات',     gov:'القاهرة', lat:30.0958, lng:31.2440},
-      {name:'فرع الزيتون',     gov:'القاهرة', lat:30.1052, lng:31.3078}
+      {name:'فرع طلعت حرب', gov:'الجيزة', lat:30.080793, lng:31.219432},
+      {name:'فرع القومية 1', gov:'الجيزة', lat:30.092682, lng:31.21064},
+      {name:'فرع السودان', gov:'الجيزة', lat:30.068045, lng:31.209976},
+      {name:'فرع الوراق', gov:'الجيزة', lat:30.097448, lng:31.218279},
+      {name:'فرع ناهيا 2', gov:'الجيزة', lat:30.04347, lng:31.186239},
+      {name:'فرع بشتيل', gov:'الجيزة', lat:30.080372, lng:31.194587},
+      {name:'فرع أرض اللواء', gov:'الجيزة', lat:30.05468, lng:31.189168},
+      {name:'فرع شبرا', gov:'القاهرة', lat:30.075385, lng:31.245216},
+      {name:'فرع المظلات', gov:'القاهرة', lat:30.101961, lng:31.245539},
+      {name:'فرع الزيتون', gov:'القاهرة', lat:30.107888, lng:31.318607}
     ];
+    var ALL_BRANCHES=DELIVERY_BRANCHES.slice();
     var FAR_KM=8;   // أبعد من كده نعتبر العنوان غالبًا برّه نطاق التوصيل
     var nearest=null; // {b, km}
     // ---- ربط برنامج النواقص + تسجيل الطلبات (سكريبت جوجل) ----
@@ -2975,6 +3018,176 @@
         })
         .catch(function(){ clearTimeout(to); return false; });
     }
+    // ================= ميعاد التوصيل + طريقة الدفع + خصم أول طلب + حجز التورت =================
+    var DLV_DEF={ start:'14:00', last:'00:45', lead:60, days:5, step:30, closed:[],
+      pay:[{id:'cash', name:'نقدي', note:'ادفع كاش لعامل التوصيل', on:true},{id:'instapay', name:'انستاباي', note:'عامل التوصيل هيكون معاه QR تحوّل عليه بانستاباي', on:true}],
+      disc:{ on:true, pct:10, max:100, min:100 } };
+    var DLV=JSON.parse(JSON.stringify(DLV_DEF));
+    var PRE_SECS={'products-torte-preorder':1};   // أقسام بتتحجز بالتليفون، مش بتتطلب من السلة
+    function pad2(n){ return (n<10?'0':'')+n; }
+    function hm(t){ var m=/^(\d{1,2}):(\d{2})$/.exec(String(t||'')); return m ? (+m[1])*60+(+m[2]) : null; }
+    function fmt12(min){ min=((min%1440)+1440)%1440; var h=Math.floor(min/60), m=min%60; return (h%12||12)+':'+pad2(m)+' '+(h<12?'ص':'م'); }
+    function ymd(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+    function dayAdd(d,n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
+    var WD=['الأحد','الاتنين','التلات','الأربع','الخميس','الجمعة','السبت'];
+    function dayLabel(d, now){
+      now=now||new Date(); var diff=Math.round((dayAdd(d,0)-dayAdd(now,0))/86400000), dm=d.getDate()+'/'+(d.getMonth()+1);
+      if(diff===0) return 'النهارده ('+dm+')'; if(diff===1) return 'بكرة ('+WD[d.getDay()]+' '+dm+')'; if(diff<0) return 'الليلة دي ('+dm+')';
+      return WD[d.getDay()]+' '+dm;
+    }
+    function dlvHoursTxt(){ var S=hm(DLV.start), E=hm(DLV.last); return 'يوميًا من '+fmt12(S)+' — آخر طلب '+fmt12(E); }
+    function dlvCalc(now){
+      now=now||new Date();
+      var S=hm(DLV.start), E=hm(DLV.last); if(S==null) S=840; if(E==null) E=45;
+      var cross=E<S, Eabs=cross?E+1440:E, m=now.getHours()*60+now.getMinutes(), today=dayAdd(now,0), bd=today, open;
+      if(cross && m<=E){ bd=dayAdd(now,-1); open=true; } else open = m>=S && m<=Eabs;
+      var asapDay = open ? bd : (m<S ? today : dayAdd(today,1));
+      var isClosed=function(d){ return (DLV.closed||[]).indexOf(ymd(d))>-1; };
+      var days=[], lead=+DLV.lead||60, step=Math.max(15,+DLV.step||30);
+      for(var i=0;i<(+DLV.days||5);i++){
+        var d=dayAdd(bd,i); if(isClosed(d)) continue;
+        var slots=[];
+        for(var t=S+lead; t<=Eabs+lead; t+=step){ var at=new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, t); if(at.getTime() >= now.getTime()+lead*60000) slots.push({t:t, at:at}); }
+        if(slots.length) days.push({d:d, slots:slots});
+      }
+      return {now:now, open:open, bd:bd, asapDay:asapDay, asapClosed:isClosed(asapDay), days:days, S:S, E:E, lead:lead};
+    }
+    var DM={ mode:'now', day:'', t:null };
+    function dlvRender(){
+      var box=document.getElementById('dlv-box'); if(!box) return;
+      var st=dlvCalc(), note=document.getElementById('dlv-note'), later=document.getElementById('dlv-later');
+      var nowBtn=box.querySelector('[data-dm="now"]');
+      nowBtn.disabled=st.asapClosed; if(st.asapClosed && DM.mode==='now') DM.mode='later';
+      box.querySelectorAll('[data-dm]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-dm')===DM.mode); });
+      later.hidden = DM.mode!=='later';
+      var ds=document.getElementById('dlv-day'), ts=document.getElementById('dlv-time');
+      var dayKeys=st.days.map(function(x){ return ymd(x.d); });
+      if(dayKeys.indexOf(DM.day)<0) DM.day=dayKeys[0]||'';
+      ds.innerHTML=st.days.map(function(x){ var k=ymd(x.d); return '<option value="'+k+'"'+(k===DM.day?' selected':'')+'>'+esc(dayLabel(x.d, st.now))+'</option>'; }).join('');
+      var cur=st.days.filter(function(x){ return ymd(x.d)===DM.day; })[0];
+      var slots=cur?cur.slots:[];
+      if(!slots.some(function(x){ return x.t===DM.t; })) DM.t=null;
+      ts.innerHTML='<option value="">اختار الساعة</option>'+slots.map(function(x){ return '<option value="'+x.t+'"'+(x.t===DM.t?' selected':'')+'>'+fmt12(x.t)+(x.t>=1440?' (بعد نص الليل)':'')+'</option>'; }).join('');
+      note.className='dlv-note';
+      if(DM.mode==='now'){
+        if(st.open) note.textContent='🛵 طلبك هيوصلك خلال حوالي '+(st.lead>=60?(st.lead/60===1?'ساعة':st.lead/60+' ساعات'):st.lead+' دقيقة')+' — مواعيد التوصيل '+dlvHoursTxt();
+        else { note.className='dlv-note warn'; note.textContent='🕑 التوصيل بيبدأ '+fmt12(st.S)+' '+(ymd(st.asapDay)===ymd(st.now)?'النهارده':'بكرة')+' — تقدر تبعت طلبك دلوقتي ويوصلك من بعد '+fmt12(st.S)+'. أو اختار «ميعاد محدد».'; }
+      }else{
+        if(!st.days.length){ note.className='dlv-note err'; note.textContent='التوصيل مقفول الأيام الجاية — كلّمنا على 17214'; }
+        else note.textContent='تقدر تختار ميعاد لحد '+(+DLV.days||5)+' أيام قدام. الفرع هيكلمك يأكد معاك.';
+      }
+      if(st.asapClosed && DM.mode==='later' && st.days.length){ note.className='dlv-note warn'; note.textContent='التوصيل مقفول '+(ymd(st.asapDay)===ymd(st.now)?'النهارده':'بكرة')+' — اختار يوم تاني.'; }
+      try{ save('smile_dlv', DM); }catch(e){}
+    }
+    function dlvValue(){
+      var st=dlvCalc();
+      if(DM.mode==='now'){
+        if(st.asapClosed) return null;
+        return { txt: st.open ? 'في أقرب وقت (خلال ساعة)' : 'أول ما التوصيل يبدأ — '+(ymd(st.asapDay)===ymd(st.now)?'النهارده':'بكرة')+' '+fmt12(st.S),
+                 at:'', day:ymd(st.asapDay), before:!st.open, future: ymd(st.asapDay)!==ymd(st.bd) };
+      }
+      var cur=st.days.filter(function(x){ return ymd(x.d)===DM.day; })[0]; if(!cur) return null;
+      var sl=cur.slots.filter(function(x){ return x.t===DM.t; })[0]; if(!sl) return null;
+      return { txt: dayLabel(cur.d, st.now)+' — '+fmt12(sl.t), at: ymd(sl.at)+' '+pad2(sl.at.getHours())+':'+pad2(sl.at.getMinutes()), day:ymd(cur.d), before:false, future: ymd(cur.d)!==ymd(st.bd), sched:true };
+    }
+    (function(){
+      var box=document.getElementById('dlv-box'); if(!box) return;
+      var sv=load('smile_dlv'); if(sv && sv.mode==='later'){ DM.mode='later'; DM.day=sv.day||''; DM.t=sv.t==null?null:+sv.t; }
+      box.querySelectorAll('[data-dm]').forEach(function(b){ b.addEventListener('click', function(){ if(b.disabled) return; DM.mode=b.getAttribute('data-dm'); dlvRender(); }); });
+      document.getElementById('dlv-day').addEventListener('change', function(e){ DM.day=e.target.value; DM.t=null; e.target.classList.remove('invalid'); dlvRender(); });
+      document.getElementById('dlv-time').addEventListener('change', function(e){ DM.t=e.target.value===''?null:+e.target.value; e.target.classList.remove('invalid'); dlvRender(); });
+      dlvRender(); setInterval(dlvRender, 60000);
+    })();
+
+    // ---- طريقة الدفع ----
+    var PAY=load('smile_pay')||'';
+    function payList(){ return (DLV.pay||[]).filter(function(x){ return x && x.on!==false && x.name; }); }
+    function payRender(){
+      var box=document.getElementById('pay-box'); if(!box) return;
+      var L=payList(); if(L.length===1) PAY=L[0].name;
+      if(PAY && !L.some(function(x){ return x.name===PAY; })) PAY='';
+      box.innerHTML=L.map(function(x){ return '<button type="button" role="radio" aria-checked="'+(x.name===PAY)+'" class="'+(x.name===PAY?'on':'')+'" data-pay="'+esc(x.name)+'">'+esc(x.name)+'</button>'; }).join('');
+      var sel=L.filter(function(x){ return x.name===PAY; })[0];
+      document.getElementById('pay-note').textContent = sel && sel.note ? sel.note : '';
+    }
+    document.getElementById('pay-box').addEventListener('click', function(e){ var b=e.target.closest('[data-pay]'); if(!b) return; PAY=b.getAttribute('data-pay'); save('smile_pay', PAY); this.classList.remove('invalid'); payRender(); });
+    payRender();
+
+    // ---- خصم أول طلب (بيتأكد من الشيت إن الرقم ده ماطلبش من الموقع قبل كده) ----
+    var FIRST={}, FIRSTP={};
+    function normPhone(p){ return latinDigits(String(p||'')).replace(/[\s\-]/g,'').replace(/^\+?20/,'0'); }
+    function checkFirst(p){
+      p=normPhone(p);
+      if(!/^01[0125]\d{8}$/.test(p) || !RELAY || !DLV.disc || !DLV.disc.on) return Promise.resolve();
+      if(p in FIRST) return Promise.resolve(); if(FIRSTP[p]) return FIRSTP[p];
+      return FIRSTP[p]=fetch(RELAY+'?a=first&p='+encodeURIComponent(p)).then(function(r){ return r.json(); })
+        .then(function(j){ if(j && j.ok) FIRST[p]=!!j.first; }).catch(function(){}).then(function(){ delete FIRSTP[p]; discRender(); });
+    }
+    function waitFirst(p){ return Promise.race([checkFirst(p), new Promise(function(r){ setTimeout(r, 6000); })]); }
+    function discAmt(p){
+      var D=DLV.disc||{}; p=normPhone(p);
+      if(!D.on || !RELAY || FIRST[p]!==true) return 0;
+      var base=total(); if(base < (+D.min||0)) return 0;
+      return Math.max(0, Math.min(Math.round(base*(+D.pct||0)/100), +D.max||Infinity));
+    }
+    function discRender(){
+      var el=document.getElementById('cart-disc'); if(!el) return;
+      var D=DLV.disc||{}, p=normPhone((document.getElementById('f-phone')||{}).value), valid=/^01[0125]\d{8}$/.test(p);
+      if(!D.on || !RELAY || !cart.length || (valid && FIRST[p]===false)){ el.hidden=true; return; }
+      var a=discAmt(p), cap=(+D.max?' (بحد أقصى '+money(+D.max)+')':''), mn=(+D.min?' — للطلبات من '+money(+D.min):'');
+      el.hidden=false; el.className='cart-disc'+(a?'':' tease');
+      if(a) el.innerHTML='🎉 خصم أول طلب '+D.pct+'%: −'+money(a)+'<b>الإجمالي بعد الخصم: '+money(total()-a)+'</b>';
+      else if(valid && FIRST[p]===true) el.textContent='🎁 أول طلب ليك عليه خصم '+D.pct+'%'+cap+' لو الطلب '+money(+D.min||0)+' أو أكتر';
+      else el.textContent='🎁 خصم '+D.pct+'% على أول طلب من الموقع'+cap+mn+' — اكتب رقم تليفونك';
+    }
+    (function(){ var ph=document.getElementById('f-phone'); if(!ph) return; var tm; ph.addEventListener('input', function(){ clearTimeout(tm); tm=setTimeout(function(){ checkFirst(ph.value).then(discRender); discRender(); }, 400); }); })();
+
+    // ---- حجز التورت: العميل بيسيب رقمه والفرع هو اللي بيكلّمه ----
+    function preSecOf(el){ var sec=el && el.closest && el.closest('.product-section'); return sec && PRE_SECS[sec.id] ? sec.id : ''; }
+    function preItems(){
+      var out=[];
+      Object.keys(PRE_SECS).forEach(function(id){
+        var sec=document.getElementById(id); if(!sec) return;
+        sec.querySelectorAll('.menu-row').forEach(function(r){ var n=r.querySelector('.menu-name'), p=r.querySelector('.menu-price'); if(n) out.push({name:n.textContent.trim(), price:p?toNum(p.textContent):0}); });
+        sec.querySelectorAll('.product-card').forEach(function(c){ var n=c.dataset.pname || ((c.querySelector('h4')||{}).textContent||'').trim(); if(n) out.push({name:n, price:0}); });
+      });
+      return out;
+    }
+    function branchNames(){ return [].map.call(document.querySelectorAll('#branches .branch-card h3'), function(h){ return h.textContent.replace(/📍/g,'').replace(/^\s*فرع\s*/,'').trim(); }).filter(Boolean); }
+    window.openBooking=function(item){
+      var its=preItems(), brs=branchNames(), near=nearest ? nearest.b.name.replace(/^فرع\s*/,'') : '';
+      try{ var pos=parseLatLng((document.getElementById('f-location')||{}).value), best=null; if(pos) ALL_BRANCHES.forEach(function(b){ var d=km(pos,b); if(!best || d<best.d) best={b:b,d:d}; }); if(best){ var bn=best.b.name.replace(/^فرع\s*/,''); var hit=brs.filter(function(x){ return normBranch(x)===normBranch(bn); })[0]; if(hit) near=hit; } }catch(e){}
+      var sel=item ? item.name+(item.size?' — '+item.size:'') : '';
+      if(sel && !its.some(function(x){ return x.name===sel; })) its.unshift({name:sel, price:item.price||0});
+      var td=ymd(new Date());
+      var bg=odModal('<h3>📞 احجز تورتة</h3><p style="margin:6px 0 0">سيب بياناتك والفرع هيكلمك يأكد الحجز والتفاصيل.</p>'+
+        '<div class="bk-form">'+
+        '<label>التورتة</label><select id="bk-item">'+its.map(function(x){ return '<option'+(x.name===sel?' selected':'')+'>'+esc(x.name)+(x.price?' — '+money(x.price):'')+'</option>'; }).join('')+'</select>'+
+        '<label>الاسم</label><input id="bk-name" autocomplete="name" value="'+esc((document.getElementById('f-name')||{}).value||'')+'">'+
+        '<label>رقم التليفون</label><input id="bk-phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" value="'+esc((document.getElementById('f-phone')||{}).value||'')+'">'+
+        '<label>الفرع</label><select id="bk-branch"><option value="">'+(near?'':'اختار الفرع')+'</option>'+brs.map(function(b){ return '<option'+(b===near?' selected':'')+'>'+esc(b)+'</option>'; }).join('')+'</select>'+
+        '<label>عايزها يوم كام؟ <small style="font-weight:500">(اختياري)</small></label><input id="bk-date" type="date" min="'+td+'">'+
+        '<label>تفاصيل <small style="font-weight:500">(الكتابة على التورتة، صورة، المناسبة…)</small></label><textarea id="bk-notes" rows="2"></textarea>'+
+        '<div class="bk-err" id="bk-err"></div>'+
+        '<button type="button" class="bk-send" id="bk-send">ابعت طلب الحجز على واتساب</button>'+
+        '<button type="button" class="od-btn ghost" data-od-close style="margin-top:8px;width:100%">إلغاء</button></div>');
+      bg.querySelector('#bk-send').addEventListener('click', function(){
+        var g=function(id){ return bg.querySelector('#'+id); }, err=g('bk-err'), bad=[];
+        var name=g('bk-name').value.trim(), phone=normPhone(g('bk-phone').value), br=g('bk-branch').value, it=g('bk-item').value;
+        g('bk-name').classList.toggle('invalid', !name); if(!name) bad.push('الاسم');
+        var okp=/^01[0125]\d{8}$/.test(phone); g('bk-phone').classList.toggle('invalid', !okp); if(!okp) bad.push('رقم تليفون صحيح');
+        g('bk-branch').classList.toggle('invalid', !br); if(!br) bad.push('الفرع');
+        if(bad.length){ err.textContent='من فضلك أكمل: '+bad.join('، '); return; }
+        var date=g('bk-date').value, notes=g('bk-notes').value.trim(), LINE='——————————————';
+        var L=['*طلب حجز تورتة — سمايل حلواني*', LINE, '📞 *حجز — الفرع يتصل بالعميل*', '*الاسم:* '+name, '*التليفون:* '+phone, '*الفرع:* '+br, '*التورتة:* '+it];
+        if(date) L.push('*التاريخ المطلوب:* '+date);
+        if(notes) L.push('*تفاصيل:* '+notes);
+        if(RELAY){ try{ var body=JSON.stringify({action:'booking', booking:{name:name, phone:phone, branch:br, item:it, date:date, notes:notes}}); var sent=false; if(navigator.sendBeacon){ try{ sent=navigator.sendBeacon(RELAY, new Blob([body],{type:'text/plain;charset=utf-8'})); }catch(e){} } if(!sent) fetch(RELAY,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:body}).catch(function(){}); }catch(e){} }
+        openWA(L.join('\n'));
+        odModal('<div class="od-check">✓</div><h3>طلب الحجز اتبعت</h3><p>فرع <b>'+esc(br)+'</b> هيكلمك على <b dir="ltr">'+esc(phone)+'</b> يأكد معاك الحجز.</p><button type="button" class="od-btn" data-od-close>تمام</button>');
+      });
+    };
+
     function logOrder(v, phone){
       if(!RELAY) return;
       try{
@@ -2985,6 +3198,7 @@
           name:v['f-name'], phone:phone, gov:v['f-gov'], city:v['f-city'],
           address:v['f-address']+' — عقار '+v['f-building']+' · دور '+v['f-floor']+' · شقة '+v['f-apt'],
           location:v['f-location'], notes:v['f-notes'], device: deviceInfo()+' · '+locInfo(v['f-location']), branch: nearest ? nearest.b.name.replace(/^فرع\s*/,'') : 'لم يتحدد',
+          deliver:(dlvValue()||{}).txt||'', deliverAt:(dlvValue()||{}).at||'', deliverDay:(dlvValue()||{}).day||'', pay:PAY, discount:discAmt(phone),
           items: cart.map(function(i){ return {name:i.name, size:i.size||'', flavor:i.flavor||'', qty:i.qty, price:i.price}; })
         }});
         var sent=false;
@@ -3150,6 +3364,11 @@
         document.getElementById('f-location').classList.add('invalid');
         missing.push('اللوكيشن: دوس «📍 حدد موقعي» أو الصق لينك المكان من خرائط جوجل (مش كتابة العنوان)');
       }
+      if(!dlvValue()){
+        var st0=dlvCalc(); if(DM.mode==='later'){ document.getElementById(DM.day?'dlv-time':'dlv-day').classList.add('invalid'); }
+        missing.push(st0.days.length ? 'ميعاد التوصيل (اختار اليوم والساعة)' : 'ميعاد التوصيل — التوصيل مقفول الأيام الجاية');
+      }
+      if(!PAY){ document.getElementById('pay-box').classList.add('invalid'); missing.push('طريقة الدفع'); }
       if(v['f-phone'] && !/^01[0125]\d{8}$/.test(phone)){
         document.getElementById('f-phone').classList.add('invalid');
         missing.push('رقم تليفون صحيح (11 رقم يبدأ بـ 01)');
@@ -3167,7 +3386,7 @@
           if(!cart.length){ err.textContent='الأصناف اللي كانت في السلة نفذت دلوقتي — اختار غيرها.'; err.style.display='block'; return; }
           if(changed){ err.textContent='⚠️ فيه أسعار اتحدّثت من ساعة ما فتحت الموقع — راجع الإجمالي الجديد فوق ودوس تأكيد تاني.'; err.style.display='block'; document.getElementById('cart-total').scrollIntoView({block:'center',behavior:'smooth'}); return; }
           sb.disabled=true; sb.textContent='بنتأكد من توفر الأصناف...';
-          waitLoc().then(function(){ updateZone(); return checkStock(); }).then(function(hit){
+          Promise.all([waitLoc(), waitFirst(phone)]).then(function(){ updateZone(); var dv=dlvValue(); if(dv && dv.future){ BLOCKED={}; return false; } return checkStock(); }).then(function(hit){
             sb.disabled=!cart.length; setBtnLabel(); render();
             if(hit){
               err.textContent='⛔ فيه أصناف مش متاحة دلوقتي في أقرب فرع ليك ('+BLOCK_BR+') — شيلها من السلة (معلّمة بالأحمر فوق) وبعدين ابعت الطلب.'; err.style.display='block';
@@ -3182,6 +3401,11 @@
       var LINE='——————————————';
       var L=[];
       L.push('*طلب جديد — سمايل حلواني*', LINE);
+      var DV=dlvValue()||{txt:''};
+      L.push('📅 *ميعاد التوصيل:* '+DV.txt);
+      if(DV.before && !DV.future) L.push('⏰ طلب قبل مواعيد التوصيل — يطلع أول ما التوصيل يبدأ');
+      if(DV.future) L.push('📞 طلب ليوم تاني — كلّم العميل أكّد معاه قبلها');
+      L.push('💳 *طريقة الدفع:* '+PAY, LINE);
       L.push('*الاسم:* '+v['f-name']);
       L.push('*التليفون:* '+phone);
       L.push('', '*العنوان*');
@@ -3199,7 +3423,9 @@
         L.push((n+1)+'. *'+i.name+'*'+(isSkipItem(i.name)?'  (حجز مسبق — يتأكد مع الفرع)':''));
         L.push('      '+(label(i)?label(i)+'  |  ':'')+'العدد '+i.qty+'  |  '+money(i.price*i.qty));
       });
-      L.push(LINE, '*الإجمالي: '+money(total())+'*', '(من غير خدمة التوصيل)');
+      var DA=discAmt(phone);
+      if(DA) L.push(LINE, 'الإجمالي قبل الخصم: '+money(total()), '🎉 خصم أول طلب ('+DLV.disc.pct+'%): −'+money(DA), '*الإجمالي: '+money(total()-DA)+'*', '(من غير خدمة التوصيل)');
+      else L.push(LINE, '*الإجمالي: '+money(total())+'*', '(من غير خدمة التوصيل)');
       L.push('', '*ملاحظات:* '+v['f-notes']);
       var waText=L.join('\n');
       var ORDERS_URL='';   // الطلبات بتروح واتساب
@@ -3270,6 +3496,7 @@
     setBtnLabel();
 
     cart = load(CART_KEY) || [];
+    try{ var nb=cart.length; cart=cart.filter(function(i){ return !PRE_SECS[secOfName(i.name)]; }); if(cart.length<nb) save(CART_KEY, cart); }catch(e){}
     render();
     // ---- products added from the admin panel ----
     // ---- ترتيب الكروت / دمج أكتر من منتج في كرت / حذف منتج (من لوحة التحكم) ----
@@ -3480,6 +3707,25 @@
       if(RELAY) setTimeout(function(){ try{ resolveLink(document.getElementById('f-location').value); }catch(e){} }, 0);
       NMAP = (d.nawaqes && typeof d.nawaqes==='object') ? d.nawaqes : {};
       NSKIP = (d.nawaqesSkip && typeof d.nawaqesSkip==='object') ? d.nawaqesSkip : {'products-torte-preorder':true};
+      try{
+        if(Array.isArray(d.branches) && d.branches.length){
+          var bl=d.branches.filter(function(b){ return b && b.name && b.on!==false && isFinite(+b.lat) && isFinite(+b.lng) && +b.lat>21 && +b.lat<32 && +b.lng>24 && +b.lng<37; })
+            .map(function(b){ return {name:'فرع '+String(b.name).replace(/^\s*فرع\s*/,''), gov:b.gov||'', lat:+b.lat, lng:+b.lng, dlv:b.dlv!==false}; });
+          var dl=bl.filter(function(b){ return b.dlv; });
+          if(dl.length){ DELIVERY_BRANCHES=dl; ALL_BRANCHES=bl; updateZone(); }
+        }
+      }catch(e){}
+      try{
+        var dc=(d.delivery && typeof d.delivery==='object') ? d.delivery : {};
+        DLV=JSON.parse(JSON.stringify(DLV_DEF));
+        ['start','last'].forEach(function(k){ if(hm(dc[k])!=null) DLV[k]=dc[k]; });
+        ['lead','days','step'].forEach(function(k){ var n=+dc[k]; if(n>0 && n<1000) DLV[k]=n; });
+        if(Array.isArray(dc.closed)) DLV.closed=dc.closed.filter(function(x){ return /^\d{4}-\d\d-\d\d$/.test(x); });
+        if(Array.isArray(dc.pay) && dc.pay.length) DLV.pay=dc.pay;
+        if(dc.disc && typeof dc.disc==='object') DLV.disc={ on:dc.disc.on!==false, pct:+dc.disc.pct||0, max:+dc.disc.max||0, min:+dc.disc.min||0 };
+        document.querySelectorAll('.dlv-hours').forEach(function(el){ el.textContent=dlvHoursTxt(); });
+        dlvRender(); payRender(); discRender();
+      }catch(e){}
       Object.keys(LIVE).forEach(function(k){ delete LIVE[k]; });
       Object.keys(OFF).forEach(function(k){ delete OFF[k]; });
       (d.sections||[]).forEach(function(s){ (s.items||[]).forEach(function(it){ if(typeof it.price==='number') LIVE[it.name+'|'+(it.size||'')]=it.price; }); });
@@ -3514,6 +3760,7 @@
       baseOf:function(k){ var el=document.querySelector('[data-pkey="'+(window.CSS&&CSS.escape?CSS.escape(k):k)+'"]'); return el ? +el.getAttribute('data-base') : null; },
       add:function(it, qty){
         var k=it.name+'|'+(it.size||''), base=this.baseOf(k); if(base===null || OFF[k]) return false;
+        if(PRE_SECS[secOfName(it.name)]) return false;
         var key=k+(it.flavor?'|'+it.flavor:''), i=find(key), p=priceOf(k, base);
         if(i<0) cart.push({key:key, name:it.name, size:it.size||'', flavor:it.flavor||'', price:p, qty:qty}); else { cart[i].qty+=qty; cart[i].price=p; }
         save(CART_KEY, cart); render(); return true;

@@ -378,6 +378,23 @@ div.theme-card{ cursor:pointer; }
 .nw-skip{ display:flex; gap:6px; align-items:center; font-size:12.5px; font-weight:700; color:var(--muted); cursor:pointer; }
 .nw-row.sub{ margin-inline-start:22px; } .nw-row[hidden]{ display:none !important; }
 .nw-stat{ font-size:13px; font-weight:700; color:#a87b12; } .nw-head.ok .nw-stat{ color:#1e8a4f; } .nw-head.ok .st{ color:#1e8a4f; }
+.br-list{ display:flex; flex-direction:column; gap:8px; }
+.br-row{ display:grid; grid-template-columns:1.2fr .8fr 1.5fr auto auto auto auto; gap:8px; align-items:center; background:var(--cream, #faf6ee); border:1px solid var(--line); border-radius:12px; padding:8px 10px; }
+.br-row.off{ opacity:.5; }
+.br-row .field{ padding:9px 12px; font-size:14px; }
+.br-st{ font-size:13px; white-space:nowrap; } .br-st a{ color:var(--teal); font-weight:800; }
+@media (max-width:900px){ .br-row{ grid-template-columns:1fr 1fr; } }
+.dl-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
+.dl-grid label{ font-size:13px; font-weight:700; color:var(--teal); display:flex; flex-direction:column; gap:6px; }
+.dl-grid .field{ padding:10px 12px; font-size:15px; }
+.pay-ed{ display:flex; flex-direction:column; gap:8px; }
+.pay-row{ display:grid; grid-template-columns:auto 1fr 1.6fr auto; gap:8px; align-items:center; background:var(--cream, #faf6ee); border:1px solid var(--line); border-radius:12px; padding:8px 10px; }
+.pay-row.off{ opacity:.55; }
+.pay-row .field{ padding:9px 12px; font-size:14px; }
+.pay-acts{ display:flex; gap:4px; }
+.sw{ display:flex; gap:6px; align-items:center; font-size:13px; font-weight:700; color:var(--teal); cursor:pointer; white-space:nowrap; }
+.chip .x{ border:0; background:none; color:inherit; cursor:pointer; font-weight:900; margin-inline-start:4px; }
+@media (max-width:700px){ .pay-row{ grid-template-columns:1fr; } }
 .nw-more{ border:0; background:none; color:var(--gold-2); font-weight:800; font-size:12px; cursor:pointer; padding:0 4px; } .nw-row.sub .nm{ font-weight:600; font-size:13.5px; color:var(--muted); }
 .nw-row{ display:grid; grid-template-columns: minmax(140px,1fr) 22px minmax(180px,1.3fr) 22px; gap:8px; align-items:center; padding:5px 8px; border-radius:10px; }
 .nw-row:nth-child(even){ background:var(--ivory); } .nw-row .nm{ font-weight:700; font-size:14.5px; } .nw-row .ar{ color:var(--muted); text-align:center; }
@@ -595,13 +612,15 @@ function cleanData(input, base) {
     out.showcase = { on: sc.on !== false, title: cleanTxt(sc.title, 30) || 'جديد سمايل', sub: cleanTxt(sc.sub, 100), items: [...new Set((sc.items || []).filter(n => all.has(n)))].slice(0, 12) }; }
   out.edits = cleanEdits(input.edits);
   Object.assign(out, cleanRelay(input, new Set([...names, ...seen])));
+  out.delivery = cleanDelivery(input.delivery);
+  out.branches = cleanBranches(input.branches);
   out.nawaqesSkip = {}; Object.keys(input.nawaqesSkip || {}).forEach(k => { if (sids.includes(k) && input.nawaqesSkip[k] === true) out.nawaqesSkip[k] = true; });
   { const sm = new Map(); out.sections.forEach(s => s.items.forEach(it => sm.set(it.name, s.id))); out.extras.forEach(x => sm.set(x.name, x.sid)); out.layout = cleanLayout(input.layout, new Set(sm.keys()), n => sm.get(n)); }
   out.images = {}; Object.keys(input.images || {}).forEach(n => { const p = input.images[n]; if ((names.has(n) || seen.has(n)) && /^uploads\/[\w-]+\.(jpe?g|png|webp)$/i.test(p)) out.images[n] = p; });
   return { data: out, err };
 }
 async function commitData(d, message, force) {
-  const out = { version: 2, rev: (orig && orig.rev || 0) + 1, updated: cairoNow(), theme: d.theme || 'default', announce: d.announce || { on: false, text: '', link: '' }, cats: d.cats || [], customThemes: d.customThemes || [], hero: d.hero || [], showcase: d.showcase || null, sections: d.sections, extras: d.extras || [], off: d.off || {}, images: d.images || {}, edits: d.edits || {}, layout: d.layout || {}, relay: d.relay || '', nawaqes: d.nawaqes || {}, nawaqesSkip: d.nawaqesSkip || {} };
+  const out = { version: 2, rev: (orig && orig.rev || 0) + 1, updated: cairoNow(), theme: d.theme || 'default', announce: d.announce || { on: false, text: '', link: '' }, cats: d.cats || [], customThemes: d.customThemes || [], hero: d.hero || [], showcase: d.showcase || null, sections: d.sections, extras: d.extras || [], off: d.off || {}, images: d.images || {}, edits: d.edits || {}, layout: d.layout || {}, relay: d.relay || '', nawaqes: d.nawaqes || {}, nawaqesSkip: d.nawaqesSkip || {}, delivery: d.delivery || dlvDefault(), branches: cleanBranches(d.branches) };
   let sha = fileSha;
   if (force) { const cur = await gh('/contents/prices.json?ref=' + encodeURIComponent(GH.branch)); if (cur.ok) { sha = cur.j.sha; out.rev = Math.max(out.rev, 1); } }
   const r = await gh('/contents/prices.json', { method: 'PUT', body: { message, content: b64enc(JSON.stringify(out, null, 1)), branch: GH.branch, ...(sha ? { sha } : {}) } });
@@ -723,6 +742,8 @@ function changes() {
     if (JSON.stringify(a.order) !== JSON.stringify(b.order)) out.look.push('ترتيب الكروت: ' + Object.keys(Object.assign({}, a.order, b.order)).filter(k => JSON.stringify(a.order[k]) !== JSON.stringify(b.order[k])).map(secTitle).join('، ')); }
   if ((draft.relay || '') !== (orig.relay || '')) out.look.push(draft.relay ? 'ربط سكريبت جوجل (النواقص وسجل الطلبات): شغال' : 'ربط سكريبت جوجل: اتقفل');
   { const a = draft.nawaqes || {}, b = orig.nawaqes || {}; const n = new Set([...Object.keys(a), ...Object.keys(b)]); let c = 0; n.forEach(k => { if (a[k] !== b[k]) c++; }); if (c) out.look.push('ربط أصناف النواقص: ' + c + ' تغيير'); }
+  if (JSON.stringify(cleanDelivery(draft.delivery)) !== JSON.stringify(cleanDelivery(orig.delivery))) out.look.push('مواعيد التوصيل / طرق الدفع / خصم أول طلب');
+  if (JSON.stringify(cleanBranches(draft.branches)) !== JSON.stringify(cleanBranches(orig.branches))) out.look.push('فروع التوصيل وأماكنها');
   { const a = draft.nawaqesSkip || {}, b = orig.nawaqesSkip || { 'products-torte-preorder': true }; const n = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(k => !!a[k] !== !!b[k]); if (n.length) out.look.push('أقسام مش تبع النواقص: ' + n.map(k => secTitle(k) + (a[k] ? ' (اتضاف)' : ' (اتشال)')).join('، ')); }
   { const ne = editsDiff(); if (ne) out.look.push('تعديل مباشر على الموقع: ' + ne + ' تغيير (كلام/صور)'); }
   out.total = out.price.length + out.avail.length + out.image.length + out.added.length + out.removed.length + out.edited.length + out.look.length;
@@ -784,6 +805,8 @@ function renderNav() {
     it('all', 'كل المنتجات', '▦', `<span class="ct">${P.length}</span>`) +
     it('soldout', 'نفذت الكمية', '⊘', soldOut ? `<span class="ct" style="background:#E0705E;color:#fff">${soldOut}</span>` : '') +
     it('front', 'واجهة الموقع', '▣') +
+    it('delivery', 'التوصيل والدفع والخصم', '🛵') +
+    it('branches', 'فروع التوصيل', '📍') +
     it('nawaqes', 'ربط النواقص والطلبات', '⇄', !draft.relay ? '<span class="ct" style="background:var(--line-2)">جديد</span>' : (() => { const n = nwUnmapped(); return n ? `<span class="ct" style="background:#E0A23C;color:#fff" title="أصناف لسه مش مربوطة">${n}</span>` : ''; })()) +
     it('live', 'تعديل مباشر على الموقع', '✎', editsCount() ? `<span class="ct">${editsCount()}</span>` : '') +
     it('look', 'المظهر والمواسم', '🎨', draft.theme && draft.theme !== 'default' ? '<span class="ct" style="background:var(--gold);color:var(--deep)">' + (THEMES.find(t => t.id === draft.theme) || {}).em + '</span>' : '') +
@@ -812,6 +835,8 @@ function render() {
   if (route.v === 'front') return renderFront(v);
   if (route.v === 'live') return renderLive(v);
   if (route.v === 'nawaqes') return renderNawaqes(v);
+  if (route.v === 'delivery') return renderDelivery(v);
+  if (route.v === 'branches') return renderBranches(v);
   if (route.v === 'arrange') return renderArrange(v);
   if (route.v === 'sec') {
     const s = allSecs().find(s => s.id === route.sid); if (!s) return go({ v: 'home' });
@@ -1683,6 +1708,143 @@ function nwSuggestSub(p, x, sys) {
   return '';
 }
 
+// ================= فروع التوصيل وأماكنها =================
+const BR_GOVS = ['القاهرة', 'الجيزة'];
+function brDefault() {
+  return [['طلعت حرب', 'الجيزة', 30.080793, 31.219432], ['القومية 1', 'الجيزة', 30.092682, 31.21064], ['السودان', 'الجيزة', 30.068045, 31.209976], ['الوراق', 'الجيزة', 30.097448, 31.218279],
+    ['ناهيا 2', 'الجيزة', 30.04347, 31.186239], ['بشتيل', 'الجيزة', 30.080372, 31.194587], ['أرض اللواء', 'الجيزة', 30.05468, 31.189168], ['شبرا', 'القاهرة', 30.075385, 31.245216],
+    ['المظلات', 'القاهرة', 30.101961, 31.245539], ['الزيتون', 'القاهرة', 30.107888, 31.318607]].map(([name, gov, lat, lng]) => ({ name, gov, lat, lng, dlv: true, on: true }));
+}
+function cleanBranches(x) {
+  if (!Array.isArray(x) || !x.length) return brDefault();
+  const seen = new Set();
+  const out = x.slice(0, 60).map(b => ({ name: cleanTxt(String(b && b.name || '').replace(/^\s*فرع\s*/, ''), 40), gov: BR_GOVS.includes(b && b.gov) ? b.gov : 'القاهرة',
+    lat: Math.round(Number(b && b.lat) * 1e6) / 1e6, lng: Math.round(Number(b && b.lng) * 1e6) / 1e6, dlv: !(b && b.dlv === false), on: !(b && b.on === false) }))
+    .filter(b => b.name && !seen.has(nBranch(b.name)) && seen.add(nBranch(b.name)));
+  return out.length ? out : brDefault();
+}
+const brOk = b => isFinite(b.lat) && isFinite(b.lng) && b.lat > 21 && b.lat < 32 && b.lng > 24 && b.lng < 37;
+function brParse(t) {
+  t = String(t || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g, '.').replace(/،/g, ',');
+  const m = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
+  if (!m) return null; const r = { lat: +(+m[1]).toFixed(6), lng: +(+m[2]).toFixed(6) }; return brOk(r) ? r : null;
+}
+function renderBranches(v) {
+  const B = draft.branches || (draft.branches = brDefault());
+  const up = () => refresh(false);
+  v.innerHTML = `<div class="page-h"><div><h1>فروع التوصيل</h1><p>الموقع بيحسب «أقرب فرع» للعميل من أماكن الفروع دي — وبيها بيعرف يفحص النواقص في الفرع الصح.</p></div>
+    <div class="acts"><button class="btn gold" id="brAdd">+ إضافة فرع</button></div></div>
+  <section class="panel"><h2>📍 الفروع <small>${B.filter(b => b.on && b.dlv).length} فرع توصيل شغال</small></h2>
+    <p class="hint" style="margin-bottom:10px">المكان: افتح الفرع على جوجل ماب من الكمبيوتر ← كليك يمين على الدبوس ← دوس على الأرقام اللي فوق (بتتنسخ) ← الزقها هنا. ينفع كمان تلزق لينك جوجل ماب ${draft.relay ? 'حتى لو مختصر (maps.app.goo.gl)' : 'الطويل'}.</p>
+    <div class="br-list">${B.map((b, i) => `<div class="br-row ${b.on ? '' : 'off'}" data-i="${i}">
+      <input class="field" data-bn value="${esc(b.name)}" placeholder="اسم الفرع">
+      <select class="field" data-bg>${BR_GOVS.map(g => `<option ${g === b.gov ? 'selected' : ''}>${g}</option>`).join('')}</select>
+      <input class="field" data-bl dir="ltr" value="${brOk(b) ? b.lat + ', ' + b.lng : ''}" placeholder="30.0807, 31.2194">
+      <span class="br-st">${brOk(b) ? `<a href="https://maps.google.com/?q=${b.lat},${b.lng}" target="_blank" rel="noopener">🗺 افتح</a>` : '<b style="color:var(--err)">⚠ مفيش مكان</b>'}</span>
+      <label class="sw"><input type="checkbox" data-bd ${b.dlv ? 'checked' : ''}> توصيل</label>
+      <label class="sw"><input type="checkbox" data-bo ${b.on ? 'checked' : ''}> شغال</label>
+      <button class="btn ghost sm" data-bx title="مسح">🗑</button>
+    </div>`).join('')}</div>
+    <p class="hint" style="margin-top:10px">«توصيل» مش متعلّم = فرع تيك أواي: مش بيتحسب في التوصيل، بس بيتقترح للعميل في حجز التورت لو هو الأقرب. «شغال» مش متعلّم = الفرع موقوف مؤقتًا. اسم الفرع لازم يبقى زي اسمه في برنامج النواقص.</p>
+  </section>`;
+  $$('.br-row', v).forEach(r => {
+    const i = +r.dataset.i, b = B[i];
+    $('[data-bn]', r).onchange = e => { const t = e.target.value.trim().replace(/^فرع\s*/, ''); if (!t) { e.target.value = b.name; return toast('اكتب اسم الفرع', 'err'); }
+      if (B.some((x, j) => j !== i && nBranch(x.name) === nBranch(t))) { e.target.value = b.name; return toast('فيه فرع بنفس الاسم', 'err'); } b.name = t; up(); };
+    $('[data-bg]', r).onchange = e => { b.gov = e.target.value; up(); };
+    $('[data-bd]', r).onchange = e => { b.dlv = e.target.checked; up(); renderBranches(v); };
+    $('[data-bo]', r).onchange = e => { b.on = e.target.checked; up(); renderBranches(v); };
+    $('[data-bx]', r).onclick = async () => { if (!await confirmBox('مسح فرع', `هتمسح «${b.name}» من فروع التوصيل؟`)) return; B.splice(i, 1); up(); renderBranches(v); };
+    $('[data-bl]', r).onchange = async e => {
+      const t = e.target.value.trim(); let c = brParse(t);
+      if (!c && /^https?:\/\//i.test(t) && draft.relay) {
+        try { toast('بنجيب المكان من اللينك...'); const j = await (await fetch(draft.relay + '?a=resolve&u=' + encodeURIComponent(t))).json(); if (j && j.ok) c = { lat: +j.lat, lng: +j.lng }; } catch (err) {}
+      }
+      if (!c) { e.target.value = brOk(b) ? b.lat + ', ' + b.lng : ''; return toast('مقدرناش نقرأ المكان — انسخ الأرقام من جوجل ماب (كليك يمين على الدبوس)', 'err'); }
+      b.lat = c.lat; b.lng = c.lng; up(); renderBranches(v); toast('✓ اتحدد مكان «' + b.name + '»', 'ok');
+    };
+  });
+  $('#brAdd', v).onclick = () => { B.push({ name: 'فرع جديد ' + (B.length + 1), gov: 'القاهرة', lat: NaN, lng: NaN, dlv: true, on: true }); up(); renderBranches(v); setTimeout(() => { const l = $$('[data-bn]', v).pop(); if (l) { l.focus(); l.select(); } }, 30); };
+}
+
+// ================= التوصيل والدفع والخصم =================
+function dlvDefault() {
+  return { start: '14:00', last: '00:45', lead: 60, days: 5, step: 30, closed: [],
+    pay: [{ id: 'cash', name: 'نقدي', note: 'ادفع كاش لعامل التوصيل', on: true }, { id: 'instapay', name: 'انستاباي', note: 'عامل التوصيل هيكون معاه QR تحوّل عليه بانستاباي', on: true }],
+    disc: { on: true, pct: 10, max: 100, min: 100 } };
+}
+function cleanDelivery(x) {
+  const D = dlvDefault(); x = (x && typeof x === 'object') ? x : {};
+  const tm = t => /^([01]?\d|2[0-3]):[0-5]\d$/.test(String(t || '')) ? String(t).padStart(5, '0') : null;
+  const num = (v, lo, hi, def) => { const n = Math.round(Number(v)); return isFinite(n) && n >= lo && n <= hi ? n : def; };
+  const out = { start: tm(x.start) || D.start, last: tm(x.last) || D.last, lead: num(x.lead, 10, 240, D.lead), days: num(x.days, 1, 30, D.days), step: [15, 30, 60].includes(+x.step) ? +x.step : D.step };
+  out.closed = [...new Set((Array.isArray(x.closed) ? x.closed : []).filter(d => /^\d{4}-\d\d-\d\d$/.test(d)))].sort().slice(0, 60);
+  const pay = (Array.isArray(x.pay) ? x.pay : D.pay).slice(0, 10).map((p, i) => ({ id: cleanTxt(p.id, 30) || ('p' + i), name: cleanTxt(p.name, 40), note: cleanTxt(p.note, 160), on: p.on !== false })).filter(p => p.name);
+  out.pay = pay.length ? pay : D.pay;
+  const dc = (x.disc && typeof x.disc === 'object') ? x.disc : D.disc;
+  out.disc = { on: dc.on !== false, pct: num(dc.pct, 1, 90, D.disc.pct), max: num(dc.max, 0, 100000, D.disc.max), min: num(dc.min, 0, 100000, D.disc.min) };
+  return out;
+}
+function renderDelivery(v) {
+  const D = draft.delivery || (draft.delivery = dlvDefault());
+  const f12 = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + ' ' + (h < 12 ? 'ص' : 'م'); };
+  const addMin = (t, n) => { const [h, m] = t.split(':').map(Number); const x = ((h * 60 + m + n) % 1440 + 1440) % 1440; return String(Math.floor(x / 60)).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0'); };
+  const today = new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10);
+  v.innerHTML = `<div class="page-h"><div><h1>التوصيل والدفع والخصم</h1><p>أي تعديل هنا بيظهر في الموقع بعد «مراجعة وحفظ».</p></div></div>
+  <section class="panel"><h2>🕑 مواعيد التوصيل</h2>
+    <div class="dl-grid">
+      <label>التوصيل بيبدأ<input class="field" type="time" id="dStart" value="${esc(D.start)}"></label>
+      <label>آخر ميعاد العميل يبعت فيه الطلب<input class="field" type="time" id="dLast" value="${esc(D.last)}"></label>
+      <label>الطلب بيوصل في (دقيقة)<input class="field" type="number" min="10" max="240" step="5" id="dLead" value="${D.lead}"></label>
+      <label>العميل يحجز ميعاد لحد (يوم قدام)<input class="field" type="number" min="1" max="30" id="dDays" value="${D.days}"></label>
+      <label>المواعيد اللي يختار منها<select class="field" id="dStep">${[15, 30, 60].map(n => `<option value="${n}" ${D.step === n ? 'selected' : ''}>كل ${n === 60 ? 'ساعة' : n + ' دقيقة'}</option>`).join('')}</select></label>
+    </div>
+    <p class="hint" id="dSum">العميل يطلب «في أقرب وقت» من ${f12(D.start)} لحد ${f12(D.last)}، ويختار «ميعاد محدد» من ${f12(addMin(D.start, D.lead))} لحد ${f12(addMin(D.last, D.lead))}. برّه المواعيد دي العميل يقدر يبعت والطلب يطلع أول ما التوصيل يبدأ.</p>
+  </section>
+  <section class="panel"><h2>⛔ أيام التوصيل فيها مقفول <small>اختياري — لو فاضي التوصيل شغال كل يوم</small></h2>
+    <div class="nw-url"><input class="field" type="date" id="dClosedIn" min="${today}"><button class="btn gold" id="dClosedAdd">إضافة يوم</button></div>
+    <div class="chips" style="margin-top:10px">${D.closed.length ? D.closed.map(d => `<span class="chip on">${esc(d)} <button class="x" data-unclose="${esc(d)}" title="شيل">✕</button></span>`).join('') : '<span class="hint">مفيش أيام مقفولة</span>'}</div>
+  </section>
+  <section class="panel"><h2>💳 طرق الدفع <small>العميل لازم يختار واحدة — الدفع مع عامل التوصيل</small></h2>
+    <div class="pay-ed">${D.pay.map((p, i) => `<div class="pay-row ${p.on ? '' : 'off'}" data-i="${i}">
+      <label class="sw"><input type="checkbox" data-pon ${p.on ? 'checked' : ''}> شغالة</label>
+      <input class="field" data-pname value="${esc(p.name)}" placeholder="اسم الطريقة (مثال: فودافون كاش)">
+      <input class="field" data-pnote value="${esc(p.note)}" placeholder="توضيح للعميل (اختياري)">
+      <span class="pay-acts"><button class="btn ghost sm" data-pup ${i ? '' : 'disabled'} title="لفوق">▲</button><button class="btn ghost sm" data-pdown ${i < D.pay.length - 1 ? '' : 'disabled'} title="لتحت">▼</button><button class="btn ghost sm" data-pdel title="مسح">🗑</button></span>
+    </div>`).join('')}</div>
+    <button class="btn gold sm" id="payAdd" style="margin-top:10px">+ إضافة طريقة دفع</button>
+  </section>
+  <section class="panel"><h2>🎁 خصم أول طلب <small>بيتأكد من شيت الطلبات إن رقم التليفون ماطلبش من الموقع قبل كده</small></h2>
+    <label class="sw" style="font-weight:800;margin-bottom:10px;display:inline-flex"><input type="checkbox" id="xOn" ${D.disc.on ? 'checked' : ''}> الخصم شغال</label>
+    <div class="dl-grid">
+      <label>نسبة الخصم %<input class="field" type="number" min="1" max="90" id="xPct" value="${D.disc.pct}"></label>
+      <label>بحد أقصى (ج.م) — 0 = من غير حد<input class="field" type="number" min="0" id="xMax" value="${D.disc.max}"></label>
+      <label>أقل قيمة طلب (ج.م)<input class="field" type="number" min="0" id="xMin" value="${D.disc.min}"></label>
+    </div>
+    <p class="hint">${draft.relay ? 'الخصم بيظهر للعميل في السلة بعد ما يكتب رقمه، وبيتكتب في رسالة الواتساب وفي عمود «الخصم» في الشيت.' : '<span style="color:var(--err)">⚠ الخصم محتاج «ربط النواقص والطلبات» يكون شغال (رابط سكريبت جوجل) عشان يعرف أول طلب.</span>'}</p>
+  </section>`;
+  const up = () => { refresh(false); };
+  const num = (id, k, obj = D) => { const el = $('#' + id, v); el.onchange = () => { obj[k] = Number(el.value) || 0; draft.delivery = cleanDelivery(D); Object.assign(D, draft.delivery); draft.delivery = D; up(); renderDelivery(v); }; };
+  $('#dStart', v).onchange = e => { if (e.target.value) { D.start = e.target.value; up(); renderDelivery(v); } };
+  $('#dLast', v).onchange = e => { if (e.target.value) { D.last = e.target.value; up(); renderDelivery(v); } };
+  num('dLead', 'lead'); num('dDays', 'days');
+  $('#dStep', v).onchange = e => { D.step = +e.target.value; up(); renderDelivery(v); };
+  $('#dClosedAdd', v).onclick = () => { const d = $('#dClosedIn', v).value; if (!d) return toast('اختار التاريخ الأول', 'err'); if (!D.closed.includes(d)) D.closed.push(d); D.closed.sort(); up(); renderDelivery(v); };
+  $$('[data-unclose]', v).forEach(b => b.onclick = () => { D.closed = D.closed.filter(x => x !== b.dataset.unclose); up(); renderDelivery(v); });
+  $$('.pay-row', v).forEach(r => {
+    const i = +r.dataset.i, p = D.pay[i];
+    $('[data-pon]', r).onchange = e => { p.on = e.target.checked; if (!D.pay.some(x => x.on)) { p.on = true; e.target.checked = true; return toast('لازم طريقة دفع واحدة على الأقل تبقى شغالة', 'err'); } up(); renderDelivery(v); };
+    $('[data-pname]', r).onchange = e => { const t = e.target.value.trim(); if (!t) { e.target.value = p.name; return toast('اكتب اسم الطريقة', 'err'); } p.name = t; up(); };
+    $('[data-pnote]', r).onchange = e => { p.note = e.target.value.trim(); up(); };
+    $('[data-pup]', r).onclick = () => { [D.pay[i - 1], D.pay[i]] = [D.pay[i], D.pay[i - 1]]; up(); renderDelivery(v); };
+    $('[data-pdown]', r).onclick = () => { [D.pay[i + 1], D.pay[i]] = [D.pay[i], D.pay[i + 1]]; up(); renderDelivery(v); };
+    $('[data-pdel]', r).onclick = () => { if (D.pay.length < 2) return toast('لازم تفضل طريقة دفع واحدة على الأقل', 'err'); D.pay.splice(i, 1); up(); renderDelivery(v); };
+  });
+  $('#payAdd', v).onclick = () => { D.pay.push({ id: 'p' + Date.now().toString(36), name: 'محفظة إلكترونية', note: 'عامل التوصيل هيقولك على الرقم تحوّل عليه', on: true }); up(); renderDelivery(v); setTimeout(() => { const l = $$('[data-pname]', v).pop(); if (l) { l.focus(); l.select(); } }, 30); };
+  $('#xOn', v).onchange = e => { D.disc.on = e.target.checked; up(); };
+  num('xPct', 'pct', D.disc); num('xMax', 'max', D.disc); num('xMin', 'min', D.disc);
+}
+
 function renderNawaqes(v) {
   const url = draft.relay || '', map = draft.nawaqes || (draft.nawaqes = {});
   if (url && (!relayCache || relayCache.url !== url) && !renderNawaqes.busy) {
@@ -1701,7 +1863,7 @@ function renderNawaqes(v) {
   const fresh = relayCache && relayCache.at && Date.now() - Date.parse(relayCache.at) < 30 * 60000;
   const sysSet = new Set((sys || []).map(nA));
   const bad = sys ? Object.keys(map).filter(k => P.some(p => p.name === nwBase(k)) && !sysSet.has(nA(map[k]))) : [];
-  const bRows = siteDelivery.map(sb => { const m = relayCache ? relayCache.branches.find(b => nBranch(b.name) === nBranch(sb)) : null; return { site: sb, m }; });
+  const bRows = (draft.branches || []).filter(b => b.on !== false && b.dlv !== false).map(b => 'فرع ' + b.name).map(sb => { const m = relayCache ? relayCache.branches.find(b => nBranch(b.name) === nBranch(sb)) : null; return { site: sb, m }; });
   v.innerHTML = `<div class="page-h"><div><h1>ربط النواقص وسجل الطلبات</h1><p>الموقع بيقرأ النواقص من برنامج النواقص وقت الطلب: لو صنف ناقص في أقرب فرع للعميل، العميل لازم يشيله قبل ما يبعت. وكل طلب بيتسجل في شيت جوجل.</p></div></div>
     <section class="panel"><h2>1. رابط سكريبت جوجل <small>نفس الرابط اللي في .env بتاع برنامج النواقص (WEB_SYNC_URL)</small></h2>
       <div class="nw-url"><input class="field" id="nwUrl" dir="ltr" placeholder="https://script.google.com/macros/s/.../exec" value="${esc(url)}"><button class="btn gold" id="nwTest">حفظ واختبار</button>${url ? '<button class="btn ghost sm" id="nwOff">إيقاف الربط</button>' : ''}</div>
@@ -2040,6 +2202,8 @@ function normalize(d) {
   if (typeof d.relay !== 'string') d.relay = '';
   if (!d.nawaqes || typeof d.nawaqes !== 'object' || Array.isArray(d.nawaqes)) d.nawaqes = {};
   if (!d.nawaqesSkip || typeof d.nawaqesSkip !== 'object' || Array.isArray(d.nawaqesSkip)) d.nawaqesSkip = { 'products-torte-preorder': true };
+  d.delivery = cleanDelivery(d.delivery);
+  d.branches = cleanBranches(d.branches);
   d.layout = d.layout && typeof d.layout === 'object' && !Array.isArray(d.layout) ? d.layout : {};
   d.layout = Object.assign(emptyLayout(), d.layout); if (!Array.isArray(d.layout.groups)) d.layout.groups = []; if (!d.layout.order || typeof d.layout.order !== 'object') d.layout.order = {}; if (!d.layout.hidden || typeof d.layout.hidden !== 'object') d.layout.hidden = {};
   d.edits = d.edits && typeof d.edits === 'object' && !Array.isArray(d.edits) ? d.edits : {};
