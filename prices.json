@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 37,
- "updated": "2026-11-25 17:12",
+ "rev": 38,
+ "updated": "2026-11-25 17:57",
  "theme": "default",
  "announce": {
   "on": false,
@@ -1295,7 +1295,7 @@
    {
     "id": "cash",
     "name": "نقدي",
-    "note": "ادفع كاش لعامل التوصيل",
+    "note": "",
     "on": true
    },
    {
