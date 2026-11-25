@@ -1,7 +1,7 @@
 {
  "version": 2,
- "rev": 36,
- "updated": "2026-11-24 23:30",
+ "rev": 37,
+ "updated": "2026-11-25 17:12",
  "theme": "default",
  "announce": {
   "on": false,
@@ -1283,5 +1283,115 @@
  },
  "nawaqesSkip": {
   "products-torte-preorder": true
- }
+ },
+ "delivery": {
+  "start": "14:00",
+  "last": "00:45",
+  "lead": 60,
+  "days": 5,
+  "step": 30,
+  "closed": [],
+  "pay": [
+   {
+    "id": "cash",
+    "name": "نقدي",
+    "note": "ادفع كاش لعامل التوصيل",
+    "on": true
+   },
+   {
+    "id": "instapay",
+    "name": "انستاباي",
+    "note": "عامل التوصيل هيكون معاه QR تحوّل عليه بانستاباي",
+    "on": true
+   }
+  ],
+  "disc": {
+   "on": false,
+   "pct": 10,
+   "max": 100,
+   "min": 100
+  }
+ },
+ "branches": [
+  {
+   "name": "طلعت حرب",
+   "gov": "الجيزة",
+   "lat": 30.080793,
+   "lng": 31.219432,
+   "dlv": true,
+   "on": true
+  },
+  {
+   "name": "القومية 1",
+   "gov": "الجيزة",
+   "lat": 30.092682,
+   "lng": 31.21064,
+   "dlv": true,
+   "on": true
+  },
+  {
+   "name": "السودان",
+   "gov": "الجيزة",
+   "lat": 30.068045,
+   "lng": 31.209976,
+   "dlv": true,
+   "on": true
+  },
+  {
+   "name": "الوراق",
+   "gov": "الجيزة",
+   "lat": 30.097448,
+   "lng": 31.218279,
+   "dlv": true,
+   "on": true
+  },
+  {
+   "name": "ناهيا 2",
+   "gov": "الجيزة",
+   "lat": 30.04347,
+   "lng": 31.186239,
+   "dlv": true,
+   "on": true
+  },
+  {
+   "name": "بشتيل",
+   "gov": "الجيزة",
+   "lat": 30.080372,
+   "lng": 31.194587,
+   "dlv": true,
+   "on": true
+  },
+  {
+   "name": "أرض اللواء",
+   "gov": "الجيزة",
+   "lat": 30.05468,
+   "lng": 31.189168,
+   "dlv": true,
+   "on": true
+  },
+  {
+   "name": "شبرا",
+   "gov": "القاهرة",
+   "lat": 30.075385,
+   "lng": 31.245216,
+   "dlv": true,
+   "on": true
+  },
+  {
+   "name": "المظلات",
+   "gov": "القاهرة",
+   "lat": 30.101961,
+   "lng": 31.245539,
+   "dlv": true,
+   "on": true
+  },
+  {
+   "name": "الزيتون",
+   "gov": "القاهرة",
+   "lat": 30.107888,
+   "lng": 31.318607,
+   "dlv": true,
+   "on": true
+  }
+ ]
 }
